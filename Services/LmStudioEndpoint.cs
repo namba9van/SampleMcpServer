@@ -1,10 +1,7 @@
-using System.Diagnostics;
 using System.Net;
-using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Net.Http.Headers;
-using System.Text.Json;
 
 namespace Services;
 
@@ -37,6 +34,7 @@ public sealed class LmStudioEndpoint
     public async Task<string> GetAsync(
         CancellationToken cancellationToken = default)
     {
+        // Ручной override имеет высший приоритет.
         if (!string.IsNullOrWhiteSpace(
                 _configuredEndpoint))
         {
@@ -44,6 +42,7 @@ public sealed class LmStudioEndpoint
                 _configuredEndpoint);
         }
 
+        // Endpoint уже найден в текущем процессе.
         if (!string.IsNullOrWhiteSpace(
                 _cachedEndpoint))
         {
@@ -57,8 +56,8 @@ public sealed class LmStudioEndpoint
         if (endpoint is null)
         {
             throw new InvalidOperationException(
-                "Не удалось автоматически определить адрес " +
-                "LM Studio API.");
+                "Не удалось автоматически определить " +
+                "адрес LM Studio API.");
         }
 
         _cachedEndpoint =
@@ -71,8 +70,8 @@ public sealed class LmStudioEndpoint
     }
 
     /// <summary>
-    /// Быстрая проверка уже известного endpoint.
-    /// Не запускает lms и не перебирает IP-адреса.
+    /// Быстрая проверка endpoint, который был
+    /// сохранён ранее.
     /// </summary>
     public async Task<bool> IsAvailableAsync(
         string endpoint,
@@ -85,33 +84,19 @@ public sealed class LmStudioEndpoint
                     HttpMethod.Get,
                     $"{Normalize(endpoint)}/models");
 
-            AddAuthorization(
-                request);
+            AddAuthorization(request);
 
             using var response =
                 await _httpClient.SendAsync(
                     request,
                     cancellationToken);
 
-            if (response.IsSuccessStatusCode)
-            {
-                return true;
-            }
-
-            Console.Error.WriteLine(
-                $"Cached LM Studio endpoint " +
-                $"{endpoint} returned " +
-                $"{(int)response.StatusCode}.");
-
-            return false;
+            return response.IsSuccessStatusCode ||
+                   response.StatusCode ==
+                       HttpStatusCode.Unauthorized;
         }
-        catch (Exception ex)
+        catch
         {
-            Console.Error.WriteLine(
-                $"Cached LM Studio endpoint " +
-                $"{endpoint} unavailable: " +
-                $"{ex.Message}");
-
             return false;
         }
     }
@@ -119,132 +104,92 @@ public sealed class LmStudioEndpoint
     private async Task<string?> FindAsync(
         CancellationToken cancellationToken)
     {
-        var port =
-            await GetLmStudioPortAsync(
-                cancellationToken);
+        var addresses =
+            GetLocalIPv4Addresses()
+                .Distinct()
+                .ToList();
 
-        if (port is null)
-        {
-            return null;
-        }
+        // Loopback проверяем всегда.
+        addresses.Insert(
+            0,
+            IPAddress.Loopback);
 
-        var candidates =
-            new List<string>();
-
-        foreach (var address
-                 in GetLocalIPv4Addresses())
-        {
-            candidates.Add(
-                $"http://{address}:{port}/v1");
-        }
-
-        candidates.Add(
-            $"http://127.0.0.1:{port}/v1");
-
-        candidates.Add(
-            $"http://localhost:{port}/v1");
-
-        foreach (var candidate
-                 in candidates.Distinct())
-        {
-            Console.Error.WriteLine(
-                $"Checking LM Studio API: " +
-                $"{candidate}");
-
-            if (await IsLmStudioAsync(
-                    candidate,
-                    cancellationToken))
+        /*
+         * Сначала проверяем стандартный порт LM Studio.
+         * Согласно документации LM Studio, по умолчанию
+         * сервер доступен на localhost:1234.
+         */
+        var preferredPorts =
+            new[]
             {
-                return candidate;
+                1234
+            };
+
+        foreach (var port in preferredPorts)
+        {
+            var endpoint =
+                await FindOnPortAsync(
+                    addresses,
+                    port,
+                    cancellationToken);
+
+            if (endpoint is not null)
+            {
+                return endpoint;
+            }
+        }
+
+        /*
+         * Если стандартный порт не найден,
+         * проверяем небольшой диапазон.
+         *
+         * Это позволяет работать после изменения
+         * пользователем порта LM Studio.
+         */
+        for (var port = 1235; port <= 1300; port++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var endpoint =
+                await FindOnPortAsync(
+                    addresses,
+                    port,
+                    cancellationToken);
+
+            if (endpoint is not null)
+            {
+                return endpoint;
             }
         }
 
         return null;
     }
 
-    private async Task<int?>
-        GetLmStudioPortAsync(
+    private async Task<string?>
+        FindOnPortAsync(
+            IReadOnlyCollection<IPAddress> addresses,
+            int port,
             CancellationToken cancellationToken)
     {
-        try
+        foreach (var address in addresses)
         {
-            var startInfo =
-                new ProcessStartInfo
-                {
-                    FileName = "lms",
-                    Arguments =
-                        "server status --json --quiet",
+            cancellationToken.ThrowIfCancellationRequested();
 
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-            using var process =
-                Process.Start(
-                    startInfo);
-
-            if (process is null)
-            {
-                return null;
-            }
-
-            var output =
-                await process
-                    .StandardOutput
-                    .ReadToEndAsync(
-                        cancellationToken);
-
-            await process
-                .WaitForExitAsync(
-                    cancellationToken);
-
-            if (process.ExitCode != 0)
-            {
-                return null;
-            }
-
-            using var json =
-                JsonDocument.Parse(
-                    output);
-
-            var root =
-                json.RootElement;
-
-            if (!root.TryGetProperty(
-                    "running",
-                    out var running) ||
-                !running.GetBoolean())
-            {
-                return null;
-            }
-
-            if (!root.TryGetProperty(
-                    "port",
-                    out var port))
-            {
-                return null;
-            }
-
-            var portNumber =
-                port.GetInt32();
+            var endpoint =
+                $"http://{address}:{port}/v1";
 
             Console.Error.WriteLine(
-                $"LM Studio server port: " +
-                $"{portNumber}");
+                $"Checking LM Studio API: {endpoint}");
 
-            return portNumber;
+            if (await IsLmStudioAsync(
+                    endpoint,
+                    cancellationToken))
+            {
+                return endpoint;
+            }
         }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine(
-                $"Failed to get LM Studio port: " +
-                $"{ex.Message}");
 
-            return null;
-        }
+        return null;
     }
 
     private async Task<bool>
@@ -259,8 +204,7 @@ public sealed class LmStudioEndpoint
                     HttpMethod.Get,
                     $"{endpoint}/models");
 
-            AddAuthorization(
-                request);
+            AddAuthorization(request);
 
             using var response =
                 await _httpClient.SendAsync(
@@ -272,8 +216,13 @@ public sealed class LmStudioEndpoint
                 return true;
             }
 
+            /*
+             * 401 означает, что HTTP-сервер существует
+             * и endpoint правильный, но включена
+             * authentication.
+             */
             if (response.StatusCode ==
-                System.Net.HttpStatusCode.Unauthorized)
+                HttpStatusCode.Unauthorized)
             {
                 Console.Error.WriteLine(
                     $"LM Studio detected at " +
@@ -283,19 +232,10 @@ public sealed class LmStudioEndpoint
                 return true;
             }
 
-            Console.Error.WriteLine(
-                $"LM Studio probe {endpoint}: " +
-                $"{(int)response.StatusCode} " +
-                $"{response.StatusCode}");
-
             return false;
         }
-        catch (Exception ex)
+        catch
         {
-            Console.Error.WriteLine(
-                $"LM Studio probe {endpoint}: " +
-                $"{ex.Message}");
-
             return false;
         }
     }
