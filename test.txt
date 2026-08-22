@@ -1,3 +1,0 @@
-SampleMcpServer автоматически определяет адрес API LM Studio.
-LM Studio используется для генерации embeddings.
-RAGTool выполняет поиск по локальным документам.

@@ -1,21 +1,42 @@
-//https://github.com/virex-84
-
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-
+/// <summary>
+/// Extracts structured text sections from DOCX documents.
+/// </summary>
 public class MyWordExtractor
 {
+    /// <summary>
+    /// Represents a document section and its approximate page number.
+    /// </summary>
+    /// <summary>
+    /// Represents a document section and its approximate page number.
+    /// </summary>
     public class Section
     {
+        /// <summary>
+        /// Gets or sets the section title.
+        /// </summary>
         public string Title { get; set; }
+
+        /// <summary>
+        /// Gets or sets the extracted section content.
+        /// </summary>
         public string Content { get; set; }
+
+        /// <summary>
+        /// Gets or sets the approximate one-based page number.
+        /// </summary>
         public int Page { get; set; }
     }
-
+    /// <summary>
+    /// Reads a DOCX document, groups content by heading, and approximates section page numbers.
+    /// </summary>
+    /// <param name="filename">The path of the DOCX file.</param>
+    /// <returns>The extracted document sections.</returns>
     public List<Section> DecodeAsync(string filename)
     {
         var result = new List<Section>();
@@ -38,41 +59,24 @@ public class MyWordExtractor
                 var level = HeadingLevel(element, styles);
                 if (level > -1)
                 {
-                    // Store the content under the previous heading.
                     if (currentContent.Length > 0 || currentHeading != "No Heading")
                     {
                         var page = GetPageNumberApproximation(element);
                         result.Add(new Section() { Title = currentHeading, Content = currentContent.ToString(), Page = page });
                     }
 
-                    // Start a new section with the new heading.
-                    //currentHeading = element.InnerText;
-
                     if (level > 1)
                     currentHeading = currentHeading + ". " + element.InnerText;
                     else
                     currentHeading = element.InnerText;
 
-
                     currentContent = new StringBuilder();
                 }
                 else
                 {
-                    // Append content to the current section.
                     if (element is Paragraph paragraph)
                     {
-                        /*
-                        if (!IsListItem(paragraph))
-                        {
-                            currentContent.AppendLine(paragraph.InnerText);
-                        }
-                        else
-                        */
-                        {
-                            // A more sophisticated implementation could handle lists properly.
-                            //currentContent.AppendLine(paragraph.InnerText);
-                            currentContent.AppendLine(ExtractParagraphText(paragraph));
-                        }
+                        currentContent.AppendLine(ExtractParagraphText(paragraph));
                     }
                     else if (element is Table table)
                     {
@@ -82,7 +86,6 @@ public class MyWordExtractor
             }
         }
 
-        //последний элемент
         if (currentContent.Length > 0)
         {
             var lastpage = 1;
@@ -93,12 +96,15 @@ public class MyWordExtractor
 
         return result;
     }
-
+    /// <summary>
+    /// Estimates the page number of an Open XML element by counting rendered page breaks before it.
+    /// </summary>
+    /// <param name="element">The document element whose approximate page number is required.</param>
+    /// <returns>The estimated one-based page number.</returns>
     public static int GetPageNumberApproximation(OpenXmlElement element)
     {
         int pageNumber = 1;
 
-        // The root is the document body
         var root = element.Ancestors<Body>().FirstOrDefault();
         if (root == null)
         {
@@ -111,7 +117,6 @@ public class MyWordExtractor
             var sibling = tmpElement.PreviousSibling();
             while (sibling != null)
             {
-                // Count all page break indicators before the element
                 pageNumber += sibling.Descendants<LastRenderedPageBreak>().Count();
                 sibling = sibling.PreviousSibling();
             }
@@ -119,7 +124,11 @@ public class MyWordExtractor
         }
         return pageNumber;
     }
-
+    /// <summary>
+    /// Extracts visible text from paragraph runs while excluding field-code instructions.
+    /// </summary>
+    /// <param name="paragraph">The paragraph to extract.</param>
+    /// <returns>The visible paragraph text, or an empty string when no text is present.</returns>
     private string? ExtractParagraphText(Paragraph paragraph)
     {
         var textBuilder = new StringBuilder();
@@ -128,7 +137,6 @@ public class MyWordExtractor
         {
             bool inComplexFieldCode = false;
 
-            // Проверяем на маркеры поля
             var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
             if (fieldChar != null)
             {
@@ -147,15 +155,12 @@ public class MyWordExtractor
                 continue;
             }
 
-            // Проверяем на простой FieldCode
             var fieldCodeElement = run.Elements<FieldCode>().FirstOrDefault();
             if (fieldCodeElement != null)
             {
-                //textBuilder.Append(fieldCodeElement.InnerText.Trim());
                 continue;
             }
 
-            // Проверяем на простое поле SimpleField
             var simpleField = run.Elements<SimpleField>().FirstOrDefault();
             if (simpleField != null)
             {
@@ -163,7 +168,6 @@ public class MyWordExtractor
                 continue;
             }
 
-            // Проверяем на гиперссылку
             var hyperlink = run.Elements<Hyperlink>().FirstOrDefault();
             if (hyperlink != null)
             {
@@ -181,14 +185,12 @@ public class MyWordExtractor
             }
         }
 
-        //если были только ссылки - добавляем текст из них
         if (textBuilder.ToString().Trim().Length == 0)
         {
             foreach (var hyperlink in paragraph.Descendants<Hyperlink>())
             {
                 foreach (var text in hyperlink.Descendants<Text>())
                 {
-                    //paragraphText += " " + text.InnerText;
                     textBuilder.Append(text.InnerText + " ");
                 }
             }
@@ -196,7 +198,11 @@ public class MyWordExtractor
 
         return textBuilder.ToString().Trim();
     }
-
+    /// <summary>
+    /// Builds a map from Word style identifiers to heading levels.
+    /// </summary>
+    /// <param name="mainPart">The DOCX main document part containing the style definitions.</param>
+    /// <returns>A style identifier to heading-level map.</returns>
     private Dictionary<string, int> GetHeadingStyles(MainDocumentPart mainPart)
     {
         var headingStyles = new Dictionary<string, int>();
@@ -215,36 +221,21 @@ public class MyWordExtractor
                     }
                     else
                     {
-                        // Проверяем BasedOn или Link
                         var basedOn = style.BasedOn?.Val?.Value;
                         var link = style.LinkedStyle?.Val?.Value;
                         if (basedOn != null)
                         {
-                            // Если BasedOn существует, проверяем уровень в базовом стиле
                             if (headingStyles.ContainsKey(basedOn))
                             {
                                 headingStyles[style.StyleId] = headingStyles[basedOn];
                             }
-                            else
-                            {
-                                //headingStyles[style.StyleId] = 12; // По умолчанию
-                            }
                         }
                         else if (link != null)
                         {
-                            // Если Link существует, проверяем уровень в связанном стиле
                             if (headingStyles.ContainsKey(link))
                             {
                                 headingStyles[style.StyleId] = headingStyles[link];
                             }
-                            else
-                            {
-                                //headingStyles[style.StyleId] = 12; // По умолчанию
-                            }
-                        }
-                        else
-                        {
-                            //headingStyles[style.StyleId] = 12; // По умолчанию
                         }
                     }
                 }
@@ -252,7 +243,12 @@ public class MyWordExtractor
         }
         return headingStyles;
     }
-
+    /// <summary>
+    /// Resolves the heading level of an Open XML element from its paragraph style.
+    /// </summary>
+    /// <param name="element">The element to inspect.</param>
+    /// <param name="styles">The style-to-level map.</param>
+    /// <returns>The heading level, or -1 when the element is not a recognized heading.</returns>
     private int HeadingLevel(OpenXmlElement element, Dictionary<string, int> styles)
     {
         if (element is Paragraph paragraph)
@@ -265,7 +261,11 @@ public class MyWordExtractor
         }
         return -1;
     }
-
+    /// <summary>
+    /// Converts a table to a JSON representation using the first bold row as a header when possible.
+    /// </summary>
+    /// <param name="table">The table to extract.</param>
+    /// <returns>The table data serialized as indented JSON.</returns>
     private string? ExtractTableText(Table table)
     {
         var tableData = new List<Dictionary<string, string>>();
@@ -276,7 +276,6 @@ public class MyWordExtractor
             var headerCells = rows.First().Elements<TableCell>().ToList();
             bool hasHeader = IsHeaderRow(headerCells);
 
-            // Skip header row in data if detected
             int startRowIndex = hasHeader ? 1 : 0;
 
             for (int i = startRowIndex; i < rows.Count; i++)
@@ -284,7 +283,6 @@ public class MyWordExtractor
                 var rowData = new Dictionary<string, string>();
                 var cells = rows[i].Elements<TableCell>().ToList();
 
-                // Process cells and match with headers if they exist.
                 for (int j = 0; j < cells.Count; j++)
                 {
                     string headerText = hasHeader && j < headerCells.Count ? headerCells[j].InnerText : $"Column_{j + 1}";
@@ -294,14 +292,16 @@ public class MyWordExtractor
             }
         }
 
-
         var options = new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.Create(new TextEncoderSettings(System.Text.Unicode.UnicodeRanges.All)) };
         return System.Text.Json.JsonSerializer.Serialize(tableData, options);
     }
-
+    /// <summary>
+    /// Determines whether all cells in a row contain bold text.
+    /// </summary>
+    /// <param name="cells">The cells of the candidate header row.</param>
+    /// <returns><see langword="true"/> when every cell contains a bold run.</returns>
     private bool IsHeaderRow(IEnumerable<TableCell> cells)
     {
-        // Simple heuristic: A row is a header if all its cells have bold text.
         foreach (var cell in cells)
         {
             var boldRun = cell.Descendants<Bold>().FirstOrDefault();

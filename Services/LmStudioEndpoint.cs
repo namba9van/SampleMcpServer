@@ -4,7 +4,9 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
 namespace Services;
-
+/// <summary>
+/// Resolves and validates the OpenAI-compatible LM Studio endpoint.
+/// </summary>
 public sealed class LmStudioEndpoint
 {
     private readonly HttpClient _httpClient;
@@ -14,7 +16,9 @@ public sealed class LmStudioEndpoint
     private readonly string? _apiKey;
 
     private string? _cachedEndpoint;
-
+    /// <summary>
+    /// Initializes endpoint discovery using environment-based endpoint and API-key settings.
+    /// </summary>
     public LmStudioEndpoint()
     {
         _httpClient = new HttpClient
@@ -30,11 +34,15 @@ public sealed class LmStudioEndpoint
             Environment.GetEnvironmentVariable(
                 "EMBEDD_KEY");
     }
-
+    /// <summary>
+    /// Returns a configured or automatically discovered LM Studio endpoint.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token for endpoint discovery.</param>
+    /// <returns>The normalized OpenAI-compatible LM Studio endpoint.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when no reachable endpoint can be found.</exception>
     public async Task<string> GetAsync(
         CancellationToken cancellationToken = default)
     {
-        // Ручной override имеет высший приоритет.
         if (!string.IsNullOrWhiteSpace(
                 _configuredEndpoint))
         {
@@ -42,7 +50,6 @@ public sealed class LmStudioEndpoint
                 _configuredEndpoint);
         }
 
-        // Endpoint уже найден в текущем процессе.
         if (!string.IsNullOrWhiteSpace(
                 _cachedEndpoint))
         {
@@ -68,11 +75,12 @@ public sealed class LmStudioEndpoint
 
         return endpoint;
     }
-
     /// <summary>
-    /// Быстрая проверка endpoint, который был
-    /// сохранён ранее.
+    /// Checks whether the specified LM Studio endpoint responds to a model request.
     /// </summary>
+    /// <param name="endpoint">The endpoint to check.</param>
+    /// <param name="cancellationToken">The cancellation token for the request.</param>
+    /// <returns><see langword="true"/> when the endpoint responds successfully or requires authentication; otherwise, <see langword="false"/>.</returns>
     public async Task<bool> IsAvailableAsync(
         string endpoint,
         CancellationToken cancellationToken = default)
@@ -100,7 +108,11 @@ public sealed class LmStudioEndpoint
             return false;
         }
     }
-
+    /// <summary>
+    /// Searches local IPv4 addresses and candidate ports for a reachable LM Studio endpoint.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token for discovery.</param>
+    /// <returns>The first reachable endpoint, or <see langword="null"/> when none is found.</returns>
     private async Task<string?> FindAsync(
         CancellationToken cancellationToken)
     {
@@ -109,16 +121,10 @@ public sealed class LmStudioEndpoint
                 .Distinct()
                 .ToList();
 
-        // Loopback проверяем всегда.
         addresses.Insert(
             0,
             IPAddress.Loopback);
 
-        /*
-         * Сначала проверяем стандартный порт LM Studio.
-         * Согласно документации LM Studio, по умолчанию
-         * сервер доступен на localhost:1234.
-         */
         var preferredPorts =
             new[]
             {
@@ -139,13 +145,6 @@ public sealed class LmStudioEndpoint
             }
         }
 
-        /*
-         * Если стандартный порт не найден,
-         * проверяем небольшой диапазон.
-         *
-         * Это позволяет работать после изменения
-         * пользователем порта LM Studio.
-         */
         for (var port = 1235; port <= 1300; port++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -165,6 +164,13 @@ public sealed class LmStudioEndpoint
         return null;
     }
 
+    /// <summary>
+    /// Checks all candidate local addresses on one TCP port.
+    /// </summary>
+    /// <param name="addresses">The local IPv4 addresses to probe.</param>
+    /// <param name="port">The TCP port to probe.</param>
+    /// <param name="cancellationToken">The cancellation token for the probes.</param>
+    /// <returns>The first valid LM Studio endpoint, or <see langword="null"/>.</returns>
     private async Task<string?>
         FindOnPortAsync(
             IReadOnlyCollection<IPAddress> addresses,
@@ -192,6 +198,12 @@ public sealed class LmStudioEndpoint
         return null;
     }
 
+    /// <summary>
+    /// Determines whether an HTTP endpoint is a reachable LM Studio API endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint to validate.</param>
+    /// <param name="cancellationToken">The cancellation token for the request.</param>
+    /// <returns><see langword="true"/> for a successful response or HTTP 401; otherwise, <see langword="false"/>.</returns>
     private async Task<bool>
         IsLmStudioAsync(
             string endpoint,
@@ -216,11 +228,6 @@ public sealed class LmStudioEndpoint
                 return true;
             }
 
-            /*
-             * 401 означает, что HTTP-сервер существует
-             * и endpoint правильный, но включена
-             * authentication.
-             */
             if (response.StatusCode ==
                 HttpStatusCode.Unauthorized)
             {
@@ -240,6 +247,10 @@ public sealed class LmStudioEndpoint
         }
     }
 
+    /// <summary>
+    /// Adds the configured bearer token to an HTTP request when available.
+    /// </summary>
+    /// <param name="request">The request that should receive the authorization header.</param>
     private void AddAuthorization(
         HttpRequestMessage request)
     {
@@ -253,6 +264,10 @@ public sealed class LmStudioEndpoint
         }
     }
 
+    /// <summary>
+    /// Returns IPv4 addresses belonging to currently active network interfaces.
+    /// </summary>
+    /// <returns>The active non-loopback IPv4 addresses.</returns>
     private static IEnumerable<IPAddress>
         GetLocalIPv4Addresses()
     {
@@ -274,6 +289,11 @@ public sealed class LmStudioEndpoint
                 !IPAddress.IsLoopback(address));
     }
 
+    /// <summary>
+    /// Removes trailing slashes from an endpoint URI.
+    /// </summary>
+    /// <param name="endpoint">The endpoint to normalize.</param>
+    /// <returns>The endpoint without trailing slashes.</returns>
     private static string Normalize(
         string endpoint)
     {

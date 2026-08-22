@@ -2,7 +2,12 @@ using Microsoft.Extensions.AI;
 using System.Text.Json;
 
 namespace Services;
-
+/// <summary>
+/// Maintains the persistent RAG index and performs similarity searches over its documents.
+/// </summary>
+/// <summary>
+/// Maintains the persistent RAG index and performs similarity searches over its documents.
+/// </summary>
 public sealed class RagIndexService
 {
     private readonly EmbeddingService _embeddingService;
@@ -23,7 +28,12 @@ public sealed class RagIndexService
     private RagIndexMetadata? _metadata;
 
     private string? _indexRoot;
-
+    /// <summary>
+    /// Initializes the persistent RAG index service.
+    /// </summary>
+    /// <param name="embeddingService">The embedding generator service.</param>
+    /// <param name="modelDiscovery">The embedding-model discovery service.</param>
+    /// <param name="documentLoader">The document loading service.</param>
     public RagIndexService(
         EmbeddingService embeddingService,
         LmStudioModelDiscovery modelDiscovery,
@@ -33,21 +43,19 @@ public sealed class RagIndexService
         _modelDiscovery = modelDiscovery;
         _documentLoader = documentLoader;
     }
-
+    /// <summary>
+    /// Synchronizes the persistent RAG index with the requested files and rebuilds the in-memory FAISS index.
+    /// </summary>
+    /// <param name="path">A file or directory whose contents should be represented in the RAG index.</param>
+    /// <param name="cancellationToken">The cancellation token for indexing.</param>
+    /// <exception cref="InvalidOperationException">Thrown when stored embeddings are incompatible with the current model or dimension.</exception>
     public async Task EnsureIndexUpToDateAsync(
         string path,
         CancellationToken cancellationToken = default)
     {
         await _lock.WaitAsync(cancellationToken);
-
         try
         {
-            /*
-             * 1. Получаем embedding generator и текущую модель.
-             *
-             * EmbeddingService / ModelDiscovery уже выполняют
-             * автоматическое обнаружение LM Studio и embedding-модели.
-             */
 			var embeddingGenerator =
 				await _embeddingService
 					.GetGeneratorAsync(
@@ -60,9 +68,6 @@ public sealed class RagIndexService
                     .GetEmbeddingModelAsync(
                         cancellationToken);
 
-            /*
-             * 2. Определяем расположение persistent RAG index.
-             */
             var indexRoot =
                 GetIndexRoot();
 
@@ -82,20 +87,11 @@ public sealed class RagIndexService
                     indexRoot,
                     "documents.json");
 
-            /*
-             * 3. Загружаем metadata.
-             */
             var existingMetadata =
                 await LoadMetadataAsync(
                     metadataPath,
                     cancellationToken);
 
-            /*
-             * 4. Загружаем сохранённые документы/embeddings.
-             *
-             * Если documents.json отсутствует или повреждён,
-             * считаем индекс недействительным.
-             */
             var documentsAreAvailable =
                 File.Exists(documentsPath);
 
@@ -107,11 +103,6 @@ public sealed class RagIndexService
                         documentsPath,
                         cancellationToken);
 
-            /*
-             * Если metadata существует, но documents.json пустой
-             * или не удалось его прочитать, индекс нельзя считать
-             * актуальным.
-             */
             if (existingMetadata is not null &&
                 documentsAreAvailable &&
                 documents.Count == 0 &&
@@ -125,9 +116,6 @@ public sealed class RagIndexService
                 documents.Clear();
             }
 
-            /*
-             * 5. Проверяем совместимость embedding-модели.
-             */
             if (existingMetadata is not null &&
                 !string.Equals(
                     existingMetadata.EmbeddingModel,
@@ -142,9 +130,6 @@ public sealed class RagIndexService
                 documents.Clear();
             }
 
-            /*
-             * 6. Проверяем размерность сохранённых embeddings.
-             */
             if (existingMetadata is not null &&
                 existingMetadata.EmbeddingDimension > 0 &&
                 documents.Count > 0)
@@ -166,10 +151,6 @@ public sealed class RagIndexService
                 }
             }
 
-            /*
-             * 7. Получаем список файлов, относящихся
-             * к текущему RAG-запросу.
-             */
             var requestedFiles =
                 _documentLoader
                     .GetFiles(path)
@@ -178,10 +159,6 @@ public sealed class RagIndexService
                         StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
-            /*
-             * 8. Если индекс отсутствует или признан
-             * несовместимым — начинаем новый индекс.
-             */
             if (existingMetadata is null)
             {
                 existingMetadata =
@@ -203,19 +180,11 @@ public sealed class RagIndexService
                 documents.Clear();
             }
 
-            /*
-             * 9. Создаём map документов:
-             *
-             * document ID -> document
-             */
             var documentMap =
                 documents.ToDictionary(
                     x => x.Id,
                     StringComparer.OrdinalIgnoreCase);
 
-            /*
-             * 10. Группируем документы по исходному файлу.
-             */
             var fileGroups =
                 documents
                     .GroupBy(
@@ -228,9 +197,6 @@ public sealed class RagIndexService
                         x => x.ToList(),
                         StringComparer.OrdinalIgnoreCase);
 
-            /*
-             * 11. Определяем изменившиеся файлы.
-             */
             var changedFiles =
                 new List<string>();
 
@@ -253,9 +219,6 @@ public sealed class RagIndexService
                 }
             }
 
-            /*
-             * 12. Определяем удалённые файлы.
-             */
             var requestedFileSet =
                 new HashSet<string>(
                     requestedFiles,
@@ -276,11 +239,6 @@ public sealed class RagIndexService
             Console.Error.WriteLine(
                 $"RAG deleted files: {deletedFiles.Count}");
 
-            /*
-             * 13. Удаляем из metadata и documentMap
-             * документы файлов, которых больше нет
-             * в текущем наборе.
-             */
             foreach (var deletedFile in deletedFiles)
             {
                 existingMetadata.Files.Remove(
@@ -298,9 +256,6 @@ public sealed class RagIndexService
                 }
             }
 
-            /*
-             * 14. Переиндексируем только изменившиеся файлы.
-             */
             foreach (var changedFile in changedFiles)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -308,9 +263,6 @@ public sealed class RagIndexService
                 Console.Error.WriteLine(
                     $"Indexing changed file: {changedFile}");
 
-                /*
-                 * Удаляем старые chunks этого файла.
-                 */
                 if (fileGroups.TryGetValue(
                         changedFile,
                         out var oldDocuments))
@@ -322,17 +274,11 @@ public sealed class RagIndexService
                     }
                 }
 
-                /*
-                 * Загружаем содержимое документа.
-                 */
                 var loaded =
                     await _documentLoader.LoadAsync(
                         changedFile,
                         cancellationToken);
 
-                /*
-                 * Новый fingerprint.
-                 */
                 var fileFingerprint =
                     RagFileFingerprint.Create(
                         changedFile);
@@ -351,9 +297,6 @@ public sealed class RagIndexService
                                 RagSectionMetadata>()
                     };
 
-                /*
-                 * Генерируем embeddings только для изменившегося файла.
-                 */
                 foreach (var document in loaded)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -391,10 +334,6 @@ public sealed class RagIndexService
                                 embedding.ToArray()
                         });
 
-                    /*
-                     * Для нового индекса dimension
-                     * определяем по фактическому embedding.
-                     */
                     if (existingMetadata
                             .EmbeddingDimension == 0)
                     {
@@ -415,17 +354,11 @@ public sealed class RagIndexService
                     }
                 }
 
-                /*
-                 * Сохраняем fingerprint файла.
-                 */
                 existingMetadata.Files[
                     changedFile] =
                     fileMetadata;
             }
 
-            /*
-             * 15. Формируем окончательный набор документов.
-             */
             documents =
                 documentMap.Values
                     .OrderBy(
@@ -434,10 +367,6 @@ public sealed class RagIndexService
                         x => x.Id)
                     .ToList();
 
-            /*
-             * 16. Если dimension ещё неизвестна,
-             * пытаемся получить её из сохранённых документов.
-             */
             if (existingMetadata.EmbeddingDimension == 0 &&
                 documents.Count > 0)
             {
@@ -447,20 +376,9 @@ public sealed class RagIndexService
                         .Length;
             }
 
-            /*
-             * 17. Обновляем metadata текущей моделью.
-             */
             existingMetadata.EmbeddingModel =
                 model;
 
-            /*
-             * 18. Пересоздаём in-memory FAISS
-             * из уже сохранённых embeddings.
-             *
-             * Важно:
-             * здесь НЕ вызывается GenerateVectorAsync()
-             * для неизменённых документов.
-             */
             _vectorStore =
                 new FaissVectorStore(
                     embeddingGenerator);
@@ -475,9 +393,6 @@ public sealed class RagIndexService
                 .EnsureCollectionExistsAsync()
                 .ConfigureAwait(false);
 
-            /*
-             * 19. Восстанавливаем FAISS.
-             */
             foreach (var document in documents)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -488,23 +403,14 @@ public sealed class RagIndexService
                         cancellationToken);
             }
 
-            /*
-             * 20. Сохраняем состояние в памяти.
-             */
             _metadata =
                 existingMetadata;
 
-            /*
-             * 21. Сохраняем embeddings на диск.
-             */
             await SaveDocumentsAsync(
                 documentsPath,
                 documents,
                 cancellationToken);
 
-            /*
-             * 22. Сохраняем metadata на диск.
-             */
             await SaveMetadataAsync(
                 metadataPath,
                 existingMetadata,
@@ -523,7 +429,15 @@ public sealed class RagIndexService
             _lock.Release();
         }
     }
-
+    /// <summary>
+    /// Searches the current in-memory RAG index and filters results by similarity threshold.
+    /// </summary>
+    /// <param name="query">The natural-language search query.</param>
+    /// <param name="limit">The maximum number of candidates requested from FAISS.</param>
+    /// <param name="threshold">The minimum result score to keep.</param>
+    /// <param name="cancellationToken">The cancellation token for the search.</param>
+    /// <returns>The matching vector-search results ordered from highest to lowest score.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when the index has not been initialized.</exception>
     public async Task<
         List<
             Microsoft.Extensions.VectorData
@@ -557,6 +471,12 @@ public sealed class RagIndexService
         return searchResults;
     }
 
+    /// <summary>
+    /// Loads persistent RAG metadata from disk.
+    /// </summary>
+    /// <param name="path">The metadata file path.</param>
+    /// <param name="cancellationToken">The cancellation token for deserialization.</param>
+    /// <returns>The metadata, or <see langword="null"/> when it is missing or invalid.</returns>
     private async Task<RagIndexMetadata?>
         LoadMetadataAsync(
             string path,
@@ -589,6 +509,12 @@ public sealed class RagIndexService
         }
     }
 
+    /// <summary>
+    /// Loads persisted RAG documents and their embeddings from disk.
+    /// </summary>
+    /// <param name="path">The documents file path.</param>
+    /// <param name="cancellationToken">The cancellation token for deserialization.</param>
+    /// <returns>The restored documents, or an empty list when the file is missing or invalid.</returns>
     private async Task<List<RagDocument>>
         LoadDocumentsAsync(
             string path,
@@ -642,6 +568,12 @@ public sealed class RagIndexService
         }
     }
 
+    /// <summary>
+    /// Persists RAG documents and embeddings using a temporary file before replacement.
+    /// </summary>
+    /// <param name="path">The destination documents file.</param>
+    /// <param name="documents">The documents to persist.</param>
+    /// <param name="cancellationToken">The cancellation token for serialization.</param>
     private async Task SaveDocumentsAsync(
         string path,
         List<RagDocument> documents,
@@ -670,7 +602,6 @@ public sealed class RagIndexService
                             x.Embedding.ToArray()
                     })
                 .ToList();
-
         await using (
             var stream =
                 File.Create(tempPath))
@@ -691,6 +622,12 @@ public sealed class RagIndexService
             path);
     }
 
+    /// <summary>
+    /// Persists RAG index metadata using a temporary file before replacement.
+    /// </summary>
+    /// <param name="path">The destination metadata file.</param>
+    /// <param name="metadata">The metadata to persist.</param>
+    /// <param name="cancellationToken">The cancellation token for serialization.</param>
     private async Task SaveMetadataAsync(
         string path,
         RagIndexMetadata metadata,
@@ -719,6 +656,10 @@ public sealed class RagIndexService
             path);
     }
 
+    /// <summary>
+    /// Returns the per-user directory used to store the persistent RAG index.
+    /// </summary>
+    /// <returns>The absolute path of the RAG index directory.</returns>
     private static string GetIndexRoot()
     {
         var localAppData =
@@ -731,6 +672,11 @@ public sealed class RagIndexService
             "RagIndex");
     }
 
+    /// <summary>
+    /// Replaces a destination file with a temporary file.
+    /// </summary>
+    /// <param name="tempPath">The temporary file path.</param>
+    /// <param name="destinationPath">The destination file path.</param>
     private static void ReplaceFile(
         string tempPath,
         string destinationPath)
@@ -741,17 +687,32 @@ public sealed class RagIndexService
             true);
     }
 
+    /// <summary>
+    /// Represents the serialized form of a RAG document.
+    /// </summary>
     private sealed class RagStoredDocument
     {
+        /// <summary>
+        /// Gets or sets the persisted document identifier.
+        /// </summary>
         public string Id { get; set; } =
             string.Empty;
 
+        /// <summary>
+        /// Gets or sets the persisted source file path.
+        /// </summary>
         public string FileName { get; set; } =
             string.Empty;
 
+        /// <summary>
+        /// Gets or sets the persisted document content.
+        /// </summary>
         public string Content { get; set; } =
             string.Empty;
 
+        /// <summary>
+        /// Gets or sets the persisted embedding vector.
+        /// </summary>
         public float[] Embedding { get; set; } =
             Array.Empty<float>();
     }

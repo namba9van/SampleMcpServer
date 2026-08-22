@@ -1,35 +1,33 @@
-//https://github.com/virex-84
-
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using static WebPageLoader;
-
 /// <summary>
-/// Tools for searching on the web.
+/// Provides an MCP tool for searching configured web search engines.
 /// </summary>
 internal class InternetSearchTools
 {
+    /// <summary>
+    /// Executes the query against the search engines listed in <c>WEB_SEARCH_ENGINES</c>.
+    /// </summary>
+    /// <param name="query">The web search query.</param>
+    /// <returns>A JSON array containing the aggregated search results.</returns>
     [McpServerTool]
-    [Description("Performs a web search.")]
+    [Description("Searches the configured web search engines and returns aggregated results.")]
+
     public async Task<string> WebSearch(
-        [Description("The search query")] string query)
+        [Description("The web search query.")] string query)
     {
-        //движки
         var searchEngines = Environment.GetEnvironmentVariable("WEB_SEARCH_ENGINES");
-        //токен для Firecraw
         var FirecrawApiKey = Environment.GetEnvironmentVariable("WEB_SEARCH_FirecrawApiKey");
-        //регион для duckduckgo
         var duckduckgoRegion = Environment.GetEnvironmentVariable("WEB_SEARCH_duckduckgoRegion");
 
         var result = new List<SearchResultItem>();
         try
         {
-            // Десериализация строки в массив строк
             string[]? engines = searchEngines?.Split(",");
 
-            // Использование массива
             foreach (string? engine in engines)
             {
                 if (engine.ToLower().Contains("duckduckgo")) result.AddRange(await DuckDuckGoSearch.LoadAsync(query, duckduckgoRegion));

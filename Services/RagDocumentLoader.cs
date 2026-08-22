@@ -6,7 +6,9 @@ using Microsoft.KernelMemory.DataFormats.Pdf;
 using Microsoft.KernelMemory.Pipeline;
 
 namespace Services;
-
+/// <summary>
+/// Loads supported file formats and converts their contents into RAG document chunks.
+/// </summary>
 public sealed class RagDocumentLoader
 {
     private static readonly HashSet<string> TextExtensions =
@@ -43,7 +45,12 @@ public sealed class RagDocumentLoader
             ".conf",
             ".config"
         };
-
+    /// <summary>
+    /// Loads all supported files under a path and converts them into RAG document chunks.
+    /// </summary>
+    /// <param name="path">A file or directory to load.</param>
+    /// <param name="cancellationToken">The cancellation token for file processing.</param>
+    /// <returns>The loaded document chunks.</returns>
     public async Task<List<RagDocument>> LoadAsync(
         string path,
         CancellationToken cancellationToken = default)
@@ -76,6 +83,12 @@ public sealed class RagDocumentLoader
         return result;
     }
 
+    /// <summary>
+    /// Resolves a file path or recursively enumerates all files under a directory.
+    /// </summary>
+    /// <param name="path">A file or directory path.</param>
+    /// <returns>The file paths to process.</returns>
+    /// <exception cref="DirectoryNotFoundException">Thrown when <paramref name="path"/> does not exist.</exception>
     public IEnumerable<string> GetFiles(string path)
     {
         if (File.Exists(path))
@@ -99,6 +112,16 @@ public sealed class RagDocumentLoader
         }
     }
 
+    /// <summary>
+    /// Decodes one file according to its supported format and creates document chunks.
+    /// </summary>
+    /// <param name="file">The file path to load.</param>
+    /// <param name="pdfDecoder">The Kernel Memory PDF decoder.</param>
+    /// <param name="myWordExtractor">The DOCX extractor.</param>
+    /// <param name="msExcelDecoder">The XLSX decoder.</param>
+    /// <param name="msPowerPointDecoder">The PPTX decoder.</param>
+    /// <param name="cancellationToken">The cancellation token for decoding.</param>
+    /// <returns>The document chunks extracted from the file.</returns>
     private async Task<List<RagDocument>> LoadFileAsync(
         string file,
         PdfDecoder pdfDecoder,
@@ -195,8 +218,6 @@ public sealed class RagDocumentLoader
         }
         else
         {
-            // Для неизвестного типа оставляем
-            // старую эвристику FileUtils.
             if (FileUtils.IsPlainText(file))
             {
                 var text =
@@ -217,6 +238,12 @@ public sealed class RagDocumentLoader
         return result;
     }
 
+    /// <summary>
+    /// Converts decoder sections into non-empty RAG document chunks.
+    /// </summary>
+    /// <param name="result">The output collection.</param>
+    /// <param name="file">The source file path.</param>
+    /// <param name="content">The decoded file content.</param>
     private static void AddChunks(
         List<RagDocument> result,
         string file,
@@ -237,6 +264,12 @@ public sealed class RagDocumentLoader
         }
     }
 
+    /// <summary>
+    /// Creates a normalized RAG document from one source file and its content.
+    /// </summary>
+    /// <param name="file">The source file path.</param>
+    /// <param name="content">The document content.</param>
+    /// <returns>A new RAG document with a generated identifier.</returns>
     private static RagDocument CreateDocument(
         string file,
         string content)

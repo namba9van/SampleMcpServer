@@ -2,7 +2,12 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 
 namespace Services;
-
+/// <summary>
+/// Discovers the embedding model available in LM Studio.
+/// </summary>
+/// <summary>
+/// Discovers the embedding model available in LM Studio.
+/// </summary>
 public sealed class LmStudioModelDiscovery
 {
     private readonly LmStudioEndpoint _endpoint;
@@ -11,7 +16,10 @@ public sealed class LmStudioModelDiscovery
     private readonly string? _configuredModel;
 
     private string? _cachedModel;
-
+    /// <summary>
+    /// Initializes model discovery and reads the optional model override.
+    /// </summary>
+    /// <param name="endpoint">The LM Studio endpoint resolver.</param>
     public LmStudioModelDiscovery(
         LmStudioEndpoint endpoint)
     {
@@ -22,36 +30,31 @@ public sealed class LmStudioModelDiscovery
             Timeout = TimeSpan.FromSeconds(3)
         };
 
-        // Необязательный override.
-        // Если задан, используем именно эту модель.
         _configuredModel =
             Environment.GetEnvironmentVariable("EMBEDD_MODEL");
     }
-
+    /// <summary>
+    /// Selects an embedding model using an explicit override, automatic discovery, or the loaded-model list.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token for model discovery requests.</param>
+    /// <returns>The selected embedding model identifier.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when no embedding model can be selected unambiguously.</exception>
     public async Task<string> GetEmbeddingModelAsync(
         CancellationToken cancellationToken = default)
     {
-        // 1. Явно заданная модель имеет приоритет.
         if (!string.IsNullOrWhiteSpace(_configuredModel))
         {
             return _configuredModel.Trim();
         }
 
-        // 2. Если уже нашли модель, повторно не ищем.
         if (!string.IsNullOrWhiteSpace(_cachedModel))
         {
             return _cachedModel;
         }
 
-        // 3. Находим endpoint LM Studio.
         var endpoint =
             await _endpoint.GetAsync(cancellationToken);
 
-        // endpoint имеет вид:
-        // http://10.8.1.1:1234/v1
-        //
-        // Native LM Studio API:
-        // http://10.8.1.1:1234/api/v1
         var nativeEndpoint =
             GetNativeApiEndpoint(endpoint);
 
@@ -75,8 +78,6 @@ public sealed class LmStudioModelDiscovery
                 "В LM Studio не найдена ни одна embedding-модель.");
         }
 
-        // Если доступна ровно одна embedding-модель,
-        // выбор однозначен.
         if (embeddingModels.Count == 1)
         {
             _cachedModel =
@@ -88,8 +89,6 @@ public sealed class LmStudioModelDiscovery
             return _cachedModel;
         }
 
-        // Если моделей несколько, пытаемся выбрать
-        // загруженную модель через OpenAI-compatible API.
         var loadedModel =
             await FindLoadedEmbeddingModelAsync(
                 endpoint,
@@ -107,7 +106,6 @@ public sealed class LmStudioModelDiscovery
             return _cachedModel;
         }
 
-        // Невозможно безопасно выбрать одну модель.
         var availableModels =
             string.Join(
                 Environment.NewLine,
@@ -125,7 +123,12 @@ public sealed class LmStudioModelDiscovery
             + Environment.NewLine
             + "Задайте EMBEDD_MODEL вручную.");
     }
-
+    /// <summary>
+    /// Reads the native LM Studio model catalog.
+    /// </summary>
+    /// <param name="nativeEndpoint">The native LM Studio API endpoint.</param>
+    /// <param name="cancellationToken">The cancellation token for the request.</param>
+    /// <returns>The models returned by LM Studio.</returns>
     private async Task<List<LmStudioModelInfo>>
         GetModelsAsync(
             string nativeEndpoint,
@@ -159,7 +162,6 @@ public sealed class LmStudioModelDiscovery
 
             using var document =
                 JsonDocument.Parse(json);
-
             if (!document.RootElement.TryGetProperty(
                     "models",
                     out var modelsElement))
@@ -218,6 +220,13 @@ public sealed class LmStudioModelDiscovery
         }
     }
 
+    /// <summary>
+    /// Finds an embedding model reported as loaded by the OpenAI-compatible models endpoint.
+    /// </summary>
+    /// <param name="endpoint">The OpenAI-compatible LM Studio endpoint.</param>
+    /// <param name="embeddingModels">The candidate embedding models.</param>
+    /// <param name="cancellationToken">The cancellation token for the request.</param>
+    /// <returns>The loaded embedding model, or <see langword="null"/> when none can be identified.</returns>
     private async Task<LmStudioModelInfo?>
         FindLoadedEmbeddingModelAsync(
             string endpoint,
@@ -288,6 +297,10 @@ public sealed class LmStudioModelDiscovery
         }
     }
 
+    /// <summary>
+    /// Adds the configured LM Studio bearer token to an HTTP request.
+    /// </summary>
+    /// <param name="request">The request to authorize.</param>
     private void AddAuthorization(
         HttpRequestMessage request)
     {
@@ -304,6 +317,11 @@ public sealed class LmStudioModelDiscovery
         }
     }
 
+    /// <summary>
+    /// Converts an OpenAI-compatible endpoint into the corresponding native LM Studio API endpoint.
+    /// </summary>
+    /// <param name="endpoint">The OpenAI-compatible endpoint.</param>
+    /// <returns>The native <c>/api/v1</c> endpoint.</returns>
     private static string GetNativeApiEndpoint(
         string endpoint)
     {
@@ -320,6 +338,12 @@ public sealed class LmStudioModelDiscovery
         return endpoint + "/api/v1";
     }
 
+    /// <summary>
+    /// Reads a JSON string property when it exists and has a string value.
+    /// </summary>
+    /// <param name="element">The JSON object to inspect.</param>
+    /// <param name="propertyName">The property name to read.</param>
+    /// <returns>The property value, or <see langword="null"/> when it is absent or non-string.</returns>
     private static string? GetStringProperty(
         JsonElement element,
         string propertyName)
@@ -337,6 +361,10 @@ public sealed class LmStudioModelDiscovery
             : null;
     }
 
+    /// <summary>
+    /// Writes the selected embedding model to stderr for diagnostics.
+    /// </summary>
+    /// <param name="model">The selected model metadata.</param>
     private static void LogSelectedModel(
         LmStudioModelInfo model)
     {
@@ -347,14 +375,26 @@ public sealed class LmStudioModelDiscovery
             $"Embedding model name: {model.DisplayName}");
     }
 
+    /// <summary>
+    /// Contains the model identifier and classification returned by LM Studio.
+    /// </summary>
     private sealed class LmStudioModelInfo
     {
+        /// <summary>
+        /// Gets the LM Studio model identifier.
+        /// </summary>
         public string Key { get; init; } =
             string.Empty;
 
+        /// <summary>
+        /// Gets the model type reported by LM Studio.
+        /// </summary>
         public string Type { get; init; } =
             string.Empty;
 
+        /// <summary>
+        /// Gets the human-readable model name.
+        /// </summary>
         public string DisplayName { get; init; } =
             string.Empty;
     }

@@ -1,5 +1,3 @@
-// https://github.com/virex-84
-
 #pragma warning disable KMEXP00
 
 using ModelContextProtocol.Server;
@@ -7,22 +5,34 @@ using Services;
 using System.ComponentModel;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-
+/// <summary>
+/// Provides an MCP tool for searching the persistent local RAG index.
+/// </summary>
 public partial class RAGTool
 {
+    /// <summary>
+    /// Ensures the local RAG index is current and searches it using vector similarity.
+    /// </summary>
+    /// <param name="path">A file or directory containing documents to index.</param>
+    /// <param name="query">The natural-language search query.</param>
+    /// <param name="limit">The maximum number of results to return.</param>
+    /// <param name="threshold">The minimum similarity score a result must reach.</param>
+    /// <param name="ragIndexService">The application-managed persistent RAG index service.</param>
+    /// <returns>A JSON array containing matching file names, scores, and content, or an error result.</returns>
     [McpServerTool]
-    [Description("Performs a RAG search using local documents.")]
+    [Description("Searches the persistent local RAG index and returns the most relevant document chunks.")]
+
     public async Task<string> RagSearch(
-        [Description("The path of the files for search")]
+        [Description("A file or directory to include in the RAG index.")]
         string path,
 
-        [Description("The search query")]
+        [Description("The natural-language query to search for.")]
         string query,
 
-        [Description("The retrieval limit")]
+        [Description("Maximum number of results to return.")]
         int limit = 3,
 
-        [Description("The retrieval affinity threshold")]
+        [Description("Minimum similarity score required for a result.")]
         double threshold = 0.2,
 
         RagIndexService ragIndexService = null!
@@ -107,15 +117,29 @@ public partial class RAGTool
             results,
             options);
     }
-
+    /// <summary>
+    /// Represents one result returned by the RAG search tool.
+    /// </summary>
+    /// <summary>
+    /// Represents one result returned by the RAG search tool.
+    /// </summary>
     public class RagResult
     {
+        /// <summary>
+        /// Gets or sets the matched document content.
+        /// </summary>
         public string Content { get; set; } =
             string.Empty;
 
+        /// <summary>
+        /// Gets or sets the source file name.
+        /// </summary>
         public string FileName { get; set; } =
             string.Empty;
 
+        /// <summary>
+        /// Gets or sets the similarity score returned by the vector search.
+        /// </summary>
         public double? Score { get; set; }
     }
 }

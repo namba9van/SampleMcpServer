@@ -1,6 +1,3 @@
-//https://github.com/virex-84
-//https://gist.github.com/virex-84/78b0dd855304a627975cca53fb4cd8ed
-
 #pragma warning disable KMEXP00
 #pragma warning disable SKEXP0001
 using Microsoft.Extensions.VectorData;
@@ -8,54 +5,61 @@ using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using Microsoft.Extensions.AI;
 using System.Runtime.CompilerServices;
-
+/// <summary>
+/// Provides an in-memory vector-store implementation backed by a FAISS index.
+/// </summary>
 public class FaissVectorStore : VectorStore
 {
     private readonly IEmbeddingGenerator? _embeddingGenerator;
     private readonly ConcurrentDictionary<string, object> _collections;
-
+    /// <summary>
+    /// Initializes the vector store and optionally associates an embedding generator with it.
+    /// </summary>
+    /// <param name="embeddingGenerator">The generator used to convert text search values into vectors.</param>
     public FaissVectorStore(IEmbeddingGenerator? embeddingGenerator)
     {
         _embeddingGenerator = embeddingGenerator;
         _collections = new ConcurrentDictionary<string, object>();
     }
-
+    /// <inheritdoc />
     public override Task<bool> CollectionExistsAsync(string name, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(_collections.ContainsKey(name));
     }
-
+    /// <inheritdoc />
     public override Task EnsureCollectionDeletedAsync(string name, CancellationToken cancellationToken = default)
     {
         _collections.TryRemove(name, out _);
         return Task.CompletedTask;
     }
-
+    /// <inheritdoc />
     public override VectorStoreCollection<TKey, TRecord> GetCollection<TKey, TRecord>(string name, VectorStoreCollectionDefinition? definition = null)
     {
         var collection = new FaissVectorStoreCollection<TKey, TRecord>(name, _embeddingGenerator, definition);
         _collections[name] = collection;
         return collection;
     }
-
+    /// <inheritdoc />
     public override VectorStoreCollection<object, Dictionary<string, object?>> GetDynamicCollection(string name, VectorStoreCollectionDefinition definition)
     {
         var collection = new FaissVectorStoreCollection<object, Dictionary<string, object?>>(name, _embeddingGenerator, definition);
         _collections[name] = collection;
         return collection;
     }
-
+    /// <inheritdoc />
     public override object? GetService(Type serviceType, object? serviceKey = null)
     {
         return null;
     }
-
+    /// <inheritdoc />
     public override IAsyncEnumerable<string> ListCollectionNamesAsync(CancellationToken cancellationToken = default)
     {
         return _collections.Keys.ToAsyncEnumerable();
     }
 }
-
+/// <summary>
+/// Represents one named FAISS-backed collection and its record-to-vector mapping.
+/// </summary>
 internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection<TKey, TRecord>
     where TKey : notnull
     where TRecord : class
@@ -68,7 +72,12 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
     private readonly Dictionary<TKey, long> _keyToIndexMap;
     private readonly List<TKey> _indexToKeyMap;
     private int _dimension;
-
+    /// <summary>
+    /// Creates a collection with the supplied name and vector-store definition.
+    /// </summary>
+    /// <param name="name">The logical collection name.</param>
+    /// <param name="embeddingGenerator">The optional generator used for string searches.</param>
+    /// <param name="definition">The optional vector-store collection definition.</param>
     public FaissVectorStoreCollection(string name, IEmbeddingGenerator? embeddingGenerator, VectorStoreCollectionDefinition? definition)
     {
         _name = name;
@@ -79,21 +88,20 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
         _indexToKeyMap = new List<TKey>();
         _dimension = 0;
     }
-
+    /// <inheritdoc />
     public override string Name => _name;
-
+    /// <inheritdoc />
     public override Task<bool> CollectionExistsAsync(CancellationToken cancellationToken = default)
     {
-        // Collection exists if we have the object
         return Task.FromResult(true);
     }
-
+    /// <inheritdoc />
     public override Task DeleteAsync(TKey key, CancellationToken cancellationToken = default)
     {
         _records.TryRemove(key, out _);
         return Task.CompletedTask;
     }
-
+    /// <inheritdoc />
     public override Task EnsureCollectionDeletedAsync(CancellationToken cancellationToken = default)
     {
         _records.Clear();
@@ -104,37 +112,42 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
         _dimension = 0;
         return Task.CompletedTask;
     }
-
+    /// <inheritdoc />
     public override Task EnsureCollectionExistsAsync(CancellationToken cancellationToken = default)
     {
-        // Collection exists if we have the object
         return Task.CompletedTask;
     }
-
+    /// <inheritdoc />
     public override Task<TRecord?> GetAsync(TKey key, RecordRetrievalOptions? options = null, CancellationToken cancellationToken = default)
     {
         _records.TryGetValue(key, out TRecord? record);
         return Task.FromResult(record);
     }
-
+    /// <inheritdoc />
     public override IAsyncEnumerable<TRecord> GetAsync(Expression<Func<TRecord, bool>> filter, int top, FilteredRecordRetrievalOptions<TRecord>? options = null, CancellationToken cancellationToken = default)
     {
         var compiledFilter = filter.Compile();
         return _records.Values.Where(compiledFilter).Take(top).ToAsyncEnumerable();
     }
-
+    /// <inheritdoc />
     public override object? GetService(Type serviceType, object? serviceKey = null)
     {
         return null;
     }
-
+    /// <summary>
+    /// Searches the FAISS index and yields the highest-scoring records.
+    /// </summary>
+    /// <typeparam name="TInput">The type of the supplied search value.</typeparam>
+    /// <param name="searchValue">A vector or a value that can be converted to text for embedding generation.</param>
+    /// <param name="top">The maximum number of neighbors to return.</param>
+    /// <param name="options">Optional vector-search settings.</param>
+    /// <param name="cancellationToken">The cancellation token for asynchronous enumeration.</param>
+    /// <returns>An asynchronous sequence of vector-search results ordered by FAISS score.</returns>
     public override async IAsyncEnumerable<VectorSearchResult<TRecord>> SearchAsync<TInput>(TInput searchValue, int top, VectorSearchOptions<TRecord>? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        // If we have an embedding generator and the search value is not already a vector, generate the embedding
         ReadOnlyMemory<float> searchVector;
         if (_embeddingGenerator != null && searchValue is not ReadOnlyMemory<float>)
         {
-            // Handle the embedding generation based on the input type
             if (typeof(TInput) == typeof(string) && _embeddingGenerator is IEmbeddingGenerator<string, Embedding<float>> stringGenerator)
             {
                 var stringInput = (string)(object)searchValue;
@@ -142,7 +155,6 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
             }
             else
             {
-                // For other types, we'll need to convert to string first
                 var stringInput = searchValue?.ToString() ?? "";
                 if (_embeddingGenerator is IEmbeddingGenerator<string, Embedding<float>> stringGen)
                 {
@@ -163,18 +175,15 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
             throw new NotSupportedException($"Search value of type {typeof(TInput)} is not supported.");
         }
 
-        // Perform the search using Faiss if we have an index
         if (_index != null && _records.Count > 0)
         {
             var searchResult = _index.Search(new float[][] { searchVector.ToArray() }, top);
-            var nbrDists = searchResult.Item1[0]; // Distances
-            var nbrIds = searchResult.Item2[0];   // IDs
+            var nbrDists = searchResult.Item1[0];
+            var nbrIds = searchResult.Item2[0];
 
-            for (int i = 0; i < nbrIds.Length && i < top; i++) //for METRIC_INNER_PRODUCT
-            //for (int i = 0; i < nbrDists.Length && i < top; i++) //for METRIC_L2: select by distance (min - best, max - worse)
+            for (int i = 0; i < nbrIds.Length && i < top; i++)
             {
                 var faissId = nbrIds[i];
-                // Find the key that corresponds to this Faiss ID
                 var keyEntry = _keyToIndexMap.FirstOrDefault(kv => kv.Value == faissId);
                 if (keyEntry.Key != null)
                 {
@@ -187,25 +196,22 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
             }
         }
     }
-
+    /// <inheritdoc />
     public override Task UpsertAsync(TRecord record, CancellationToken cancellationToken = default)
     {
-        // Extract key and vector from record
         var key = ExtractKeyFromRecord(record);
         var vector = ExtractVectorFromRecord(record);
-        
-        // Store the record
+
         _records[key] = record;
-        
-        // Update Faiss index if we have a vector
+
         if (vector.HasValue)
         {
             UpdateFaissIndex(key, vector.Value);
         }
-        
+
         return Task.CompletedTask;
     }
-
+    /// <inheritdoc />
     public override Task UpsertAsync(IEnumerable<TRecord> records, CancellationToken cancellationToken = default)
     {
         foreach (var record in records)
@@ -214,13 +220,16 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
         }
         return Task.CompletedTask;
     }
-
+    /// <summary>
+    /// Extracts the vector-store key from a dynamic dictionary or an attributed property.
+    /// </summary>
+    /// <param name="record">The record whose key is required.</param>
+    /// <returns>The key associated with the record.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when no compatible key can be found.</exception>
     private TKey ExtractKeyFromRecord(TRecord record)
     {
-        // For dynamic records (Dictionary<string, object?>)
         if (record is IDictionary<string, object?> dictRecord)
         {
-            // Look for common key field names
             if (dictRecord.TryGetValue("id", out object? idValue) && idValue is TKey idTKey)
                 return idTKey;
             if (dictRecord.TryGetValue("key", out object? keyValue) && keyValue is TKey keyTKey)
@@ -230,11 +239,9 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
         }
         else if (record != null)
         {
-            // For strongly typed records, we would use reflection to find the property with VectorStoreKey attribute
-            // This is a simplified approach for demonstration
             var keyProperty = typeof(TRecord).GetProperties()
                 .FirstOrDefault(p => p.GetCustomAttributes(typeof(VectorStoreKeyAttribute), false).Length > 0);
-            
+
             if (keyProperty != null)
             {
                 var value = keyProperty.GetValue(record);
@@ -242,16 +249,18 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
                     return key;
             }
         }
-        
+
         throw new InvalidOperationException($"Could not extract key from record of type {typeof(TRecord)}");
     }
-
+    /// <summary>
+    /// Extracts an embedding vector from a dynamic dictionary or an attributed property.
+    /// </summary>
+    /// <param name="record">The record whose vector is required.</param>
+    /// <returns>The stored vector, or <see langword="null"/> when no vector is present.</returns>
     private ReadOnlyMemory<float>? ExtractVectorFromRecord(TRecord record)
     {
-        // For dynamic records (Dictionary<string, object?>)
         if (record is IDictionary<string, object?> dictRecord)
         {
-            // Look for common vector field names
             if (dictRecord.TryGetValue("embedding", out object? embeddingValue))
             {
                 if (embeddingValue is ReadOnlyMemory<float> embeddingMemory)
@@ -276,10 +285,9 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
         }
         else if (record != null)
         {
-            // For strongly typed records, we would use reflection to find the property with VectorStoreVector attribute
             var vectorProperty = typeof(TRecord).GetProperties()
                 .FirstOrDefault(p => p.GetCustomAttributes(typeof(VectorStoreVectorAttribute), false).Length > 0);
-            
+
             if (vectorProperty != null)
             {
                 var value = vectorProperty.GetValue(record);
@@ -289,13 +297,17 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
                     return new ReadOnlyMemory<float>(floatArray);
             }
         }
-        
+
         return null;
     }
-
+    /// <summary>
+    /// Adds the record vector to the FAISS index and validates its dimensionality.
+    /// </summary>
+    /// <param name="key">The record key used to map the FAISS identifier back to the record.</param>
+    /// <param name="vector">The vector to add to the index.</param>
+    /// <exception cref="InvalidOperationException">Thrown when the vector dimensionality conflicts with the existing index.</exception>
     private void UpdateFaissIndex(TKey key, ReadOnlyMemory<float> vector)
     {
-        // Set dimension if not already set
         if (_dimension == 0)
         {
             _dimension = vector.Length;
@@ -305,20 +317,13 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
             throw new InvalidOperationException($"Vector dimension mismatch. Expected: {_dimension}, Got: {vector.Length}");
         }
 
-        // Initialize the index if it doesn't exist
         if (_index == null)
         {
-            //_index = FaissNet.Index.CreateDefault(_dimension, FaissNet.MetricType.METRIC_L2);
-            //best for text
             _index = FaissNet.Index.Create(_dimension, "IDMap,HNSW32", FaissNet.MetricType.METRIC_INNER_PRODUCT);
         }
 
-        // Check if this key already exists in the index
         if (_keyToIndexMap.TryGetValue(key, out long existingIndex))
         {
-            // In Faiss, we can't directly update vectors, so we'll need to rebuild the index
-            // For simplicity in this implementation, we'll just add the vector
-            // A production implementation would need a more sophisticated approach
             var newIndexId = (long)_indexToKeyMap.Count;
             _keyToIndexMap[key] = newIndexId;
             _indexToKeyMap.Add(key);
@@ -327,7 +332,6 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
         }
         else
         {
-            // Add new vector
             var newIndexId = (long)_indexToKeyMap.Count;
             _keyToIndexMap[key] = newIndexId;
             _indexToKeyMap.Add(key);

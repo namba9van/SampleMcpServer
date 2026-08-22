@@ -3,7 +3,9 @@ using OpenAI;
 using System.ClientModel;
 
 namespace Services;
-
+/// <summary>
+/// Lazily creates and caches the embedding generator used by the RAG subsystem.
+/// </summary>
 public sealed class EmbeddingService
 {
     private readonly LmStudioEndpoint _endpoint;
@@ -19,7 +21,11 @@ public sealed class EmbeddingService
     private string? _currentEndpoint;
 
     private string? _currentModel;
-
+    /// <summary>
+    /// Initializes the embedding service with LM Studio endpoint and model discovery dependencies.
+    /// </summary>
+    /// <param name="endpoint">The service that resolves the LM Studio endpoint.</param>
+    /// <param name="modelDiscovery">The service that resolves the embedding model.</param>
     public EmbeddingService(
         LmStudioEndpoint endpoint,
         LmStudioModelDiscovery modelDiscovery)
@@ -27,13 +33,24 @@ public sealed class EmbeddingService
         _endpoint = endpoint;
         _modelDiscovery = modelDiscovery;
     }
-
+    /// <summary>
+    /// Gets the endpoint used by the cached embedding generator, when initialized.
+    /// </summary>
     public string? CurrentEndpoint =>
         _currentEndpoint;
-
+    /// <summary>
+    /// Gets the model used by the cached embedding generator, when initialized.
+    /// </summary>
     public string? CurrentModel =>
         _currentModel;
-
+    /// <summary>
+    /// Creates and caches an embedding generator for the requested LM Studio configuration.
+    /// </summary>
+    /// <param name="preferredEndpoint">An optional endpoint override to try first.</param>
+    /// <param name="preferredModel">An optional model override.</param>
+    /// <param name="cancellationToken">The cancellation token for initialization.</param>
+    /// <returns>The cached or newly created embedding generator.</returns>
+    /// <exception cref="InvalidOperationException">Thrown when LM Studio or the embedding configuration cannot be initialized.</exception>
     public async Task<
         IEmbeddingGenerator<string, Embedding<float>>>
         GetGeneratorAsync(
@@ -44,8 +61,6 @@ public sealed class EmbeddingService
         Console.Error.WriteLine(
             "EmbeddingService: GetGeneratorAsync started.");
 
-        // Если generator уже создан в рамках текущего
-        // процесса, повторно ничего не инициализируем.
         if (_generator is not null)
         {
             Console.Error.WriteLine(
@@ -65,8 +80,6 @@ public sealed class EmbeddingService
 
         try
         {
-            // Пока мы ждали lock, другой запрос мог уже
-            // выполнить инициализацию.
             if (_generator is not null)
             {
                 Console.Error.WriteLine(
@@ -76,12 +89,6 @@ public sealed class EmbeddingService
                 return _generator;
             }
 
-            /*
-             * 1. Получаем endpoint LM Studio.
-             *
-             * Если preferredEndpoint задан,
-             * сначала пытаемся использовать его.
-             */
             string endpoint;
 
             if (!string.IsNullOrWhiteSpace(
@@ -130,12 +137,6 @@ public sealed class EmbeddingService
                 $"EmbeddingService: endpoint resolved: " +
                 $"{endpoint}");
 
-            /*
-             * 2. Получаем embedding model.
-             *
-             * Если preferredModel задан, используем его.
-             * Иначе выполняем автоматический discovery.
-             */
             string model;
 
             if (!string.IsNullOrWhiteSpace(
@@ -162,9 +163,6 @@ public sealed class EmbeddingService
                     $"EmbeddingService: model resolved: {model}");
             }
 
-            /*
-             * 3. Получаем API key LM Studio.
-             */
             var key =
                 Environment.GetEnvironmentVariable(
                     "EMBEDD_KEY");
@@ -179,9 +177,6 @@ public sealed class EmbeddingService
             Console.Error.WriteLine(
                 "EmbeddingService: API key is configured.");
 
-            /*
-             * 4. Создаём OpenAI-compatible client.
-             */
             Console.Error.WriteLine(
                 "EmbeddingService: creating OpenAI client.");
 
@@ -200,9 +195,6 @@ public sealed class EmbeddingService
                     credential,
                     options);
 
-            /*
-             * 5. Создаём embedding generator.
-             */
             Console.Error.WriteLine(
                 $"EmbeddingService: creating embedding " +
                 $"generator for model: {model}");
@@ -213,9 +205,6 @@ public sealed class EmbeddingService
                         model)
                     .AsIEmbeddingGenerator();
 
-            /*
-             * 6. Сохраняем текущую конфигурацию.
-             */
             _currentEndpoint =
                 endpoint;
 

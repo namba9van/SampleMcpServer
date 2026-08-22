@@ -1,48 +1,52 @@
-//https://github.com/virex-84
-
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 using System.Text;
-
 /// <summary>
-/// Tools for basic file operations.
+/// Provides basic file-system operations exposed as MCP tools.
 /// </summary>
 public class FileOperationsTools
 {
+    /// <summary>
+    /// Creates a new text file and writes the supplied content to it.
+    /// </summary>
+    /// <param name="filename">The full path of the file to create.</param>
+    /// <param name="content">The text to write.</param>
+    /// <returns>A status message describing the outcome.</returns>
     [McpServerTool]
-    [Description("Writes content to a file.")]
+    [Description("Creates a new file with the supplied text content; an existing file is never overwritten.")]
+
     public string WriteFile(
-        [Description("The file name with full path")] string filename,
-        [Description("The content")] string content
+        [Description("The full path of the file.")] string filename,
+        [Description("The text content to write.")] string content
     )
     {
         try
         {
-            //не будем перезаписывать или дозаписывать
-            //в уже существующий файл
-            //что бы не испортить его
             if (File.Exists(filename))
                 return "Such a file already exists!";
 
             File.WriteAllText(filename, content);
-            return "Сontext write successful.";
+            return "Context write successful.";
         }
         catch (Exception ex)
         {
             return $"Error write context to file: {ex.Message}";
         }
     }
-
+    /// <summary>
+    /// Reads the contents of a text file using the encoding detected from its BOM.
+    /// </summary>
+    /// <param name="filename">The full path of the file to read.</param>
+    /// <returns>The decoded file contents.</returns>
     [McpServerTool]
-    [Description("Read file from the specified path.")]
+    [Description("Reads a text file from the specified path.")]
+
     public string ReadFile(
-    [Description("The file name with full path")] string filename)
+    [Description("The full path of the file.")] string filename)
     {
-        //определеляем кодировку utf встроенным в StreamReader методом
         Encoding encoding = Encoding.Unicode;
         using (StreamReader reader = new StreamReader(filename, true))
         {
-            //читаем один байт (BOM)
             while (reader.Peek() >= 0)
             {
                 encoding = reader.CurrentEncoding;
@@ -53,11 +57,16 @@ public class FileOperationsTools
 
         return File.ReadAllText(filename, encoding);
     }
-
+    /// <summary>
+    /// Lists files and immediate subdirectories in a directory.
+    /// </summary>
+    /// <param name="path">The path of the directory to inspect.</param>
+    /// <returns>A formatted list of files and directories, or an error message.</returns>
     [McpServerTool]
-    [Description("Lists files in the specified directory.")]
+    [Description("Lists files and immediate subdirectories in the specified directory.")]
+
     public string ListFiles(
-        [Description("The path of the directory to list files from")] string path)
+        [Description("The path of the directory to inspect.")] string path)
     {
         try
         {

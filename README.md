@@ -1,247 +1,266 @@
-# SampleMcpServer — LM Studio / MCP / RAG
+# SampleMcpServer
 
-## Текущее состояние
+SampleMcpServer — консольный MCP-сервер на .NET 8, использующий stdio-транспорт MCP, инструменты поиска и файловых операций, интеграцию с LM Studio и локальный persistent RAG с FAISS.
 
-Рабочая версия проекта находится на ветке:
+## Текущая структура
 
-```text
-fix/some-change
-```
-
-Последний зафиксированный рабочий коммит:
+В проекте оставлена одна рабочая реализация:
+Структура проекта:
 
 ```text
-b275889 Implement working LM Studio RAG index
+SampleMcpServer/
+├── Program.cs
+├── SampleMcpServer.csproj
+├── SampleMcpServer.sln
+├── Tools/
+│   ├── CalcTools.cs
+│   ├── FileOperationsTools.cs
+│   ├── GitHubSearchTool.cs
+│   ├── InternetSearchTools.cs
+│   ├── RAGTool.cs
+│   └── RandomNumberTools.cs
+├── Services/
+│   ├── EmbeddingService.cs
+│   ├── LmStudioEndpoint.cs
+│   ├── LmStudioModelDiscovery.cs
+│   ├── RagDocument.cs
+│   ├── RagDocumentLoader.cs
+│   ├── RagFileFingerprint.cs
+│   ├── RagIndexMetadata.cs
+│   └── RagIndexService.cs
+└── Utils/
+    ├── BaiduSearch.cs
+    ├── DuckDuckGoSearch.cs
+    ├── FaissVectorStore.cs
+    ├── FileUtils.cs
+    ├── FirecrawlSearch.cs
+    ├── MyWordExtractor.cs
+    └── WebPageLoader.cs
 ```
 
-Рабочее дерево после этого коммита должно оставаться чистым.
 
-## Что реализовано
+## Запуск как MCP-сервера
 
-### MCP + LM Studio
-
-SampleMcpServer запускается из LM Studio как MCP server через stdio.
-
-LM Studio endpoint не задаётся жёстко в `mcp.json`.
-
-Сервер автоматически:
-
-1. получает порт LM Studio через:
-   `lms server status --json --quiet`;
-2. получает локальные IPv4-адреса Windows;
-3. проверяет OpenAI-compatible endpoint `/v1/models`;
-4. учитывает включённую в LM Studio authentication;
-5. выбирает рабочий endpoint.
-
-Ручной override `EMBEDD_ENDPOINT` поддерживается, но в обычной конфигурации не требуется.
-
-### Автоматический выбор embedding-модели
-
-Embedding-модель не должна быть жёстко задана.
-
-Через native LM Studio API `/api/v1/models` сервер получает список моделей и выбирает модель с `type = embedding`.
-
-Если задан `EMBEDD_MODEL`, он используется как ручной override.
-
-Текущая проверенная модель LM Studio:
+Сервер запускается как обычное консольное приложение и использует stdio:
 
 ```text
-text-embedding-nomic-embed-text-v1.5
+MCP client <-> stdin/stdout <-> SampleMcpServer
 ```
 
-Фактическая размерность embedding:
+Логи направляются в stderr, чтобы stdout оставался выделенным под сообщения MCP-протокола.
+
+Для регистрации MCP-инструментов сервер использует:
+
+- `random_number` — генерация случайного целого числа;
+- `time` — получение текущего локального времени, UTC, смещения часового пояса, даты и ISO 8601 timestamp;
+- `calc` — арифметические операции;
+- `file_operations` — создание, чтение и перечисление файлов;
+- `internet_search` — агрегированный поиск через настроенные поисковые движки;
+- `github_search` — поиск репозиториев и исходного кода через GitHub API;
+- `rag` — поиск по локальным документам через persistent RAG.
+
+## Инструменты времени
+
+`TimeTools` три MCP-инструмента для получения актуального времени и даты:
+
+- `GetCurrentTime` — возвращает локальное время, UTC, смещение локального часового пояса и ISO 8601 timestamp;
+- `GetCurrentDate` — возвращает текущую локальную дату в форматах `yyyy-MM-dd` и `dd.MM.yyyy`, а также день недели в текущей локали системы;
+- `GetCurrentTimestamp` — возвращает текущий локальный timestamp в ISO 8601 с локальным смещением часового пояса и микросекундной точностью, как в исходной Python-реализации.
+
+В реализации используется `DateTimeOffset`, чтобы сохранять локальное смещение непосредственно вместе со значением времени. Инструменты обращаются к системным часам и не вычисляют текущее время эвристически.
+
+## Интеграция с LM Studio
+
+`LmStudioEndpoint` автоматически определяет OpenAI-compatible endpoint LM Studio.
+
+При отсутствии ручного endpoint сервер:
+
+1. получает локальные IPv4-адреса активных сетевых интерфейсов;
+2. сначала проверяет порт `1234`;
+3. затем проверяет порты `1235..1300`;
+4. проверяет endpoint через `/v1/models`;
+5. считает HTTP `401 Unauthorized` признаком найденного LM Studio endpoint, если включена authentication.
+
+Можно задать endpoint вручную:
 
 ```text
-768
+EMBEDD_ENDPOINT=http://127.0.0.1:1234/v1
 ```
 
-### Authentication
-
-При включённом в LM Studio `Require Authentication` используется:
+Для запросов к LM Studio используется bearer-токен:
 
 ```text
-EMBEDD_KEY
+EMBEDD_KEY=<LM-Studio-token>
 ```
 
-Он передаётся как:
+Если `EMBEDD_KEY` не задан, текущая реализация `EmbeddingService` завершает инициализацию с ошибкой.
 
-```http
-Authorization: Bearer <token>
+## Выбор embedding-модели
+
+`LmStudioModelDiscovery` сначала проверяет переменную:
+
+```text
+EMBEDD_MODEL=<model-id>
 ```
+
+Если override не задан:
+
+1. вызывается native LM Studio API `/api/v1/models`;
+2. выбираются модели с `type = embedding`;
+3. если embedding-модель только одна, она выбирается автоматически;
+4. если моделей несколько, сервер пытается определить загруженную модель через OpenAI-compatible `/v1/models`;
+5. если однозначный выбор невозможен, сервер сообщает список моделей и предлагает задать `EMBEDD_MODEL`.
+
+`EmbeddingService` кэширует созданный `IEmbeddingGenerator` на время работы процесса и защищает инициализацию через `SemaphoreSlim`.
 
 ## Persistent RAG
 
-RAG больше не пересчитывает embeddings неизменившихся файлов при каждом запросе.
+RAG построен вокруг `RagIndexService`, `RagDocumentLoader`, `EmbeddingService`, `LmStudioModelDiscovery` и `FaissVectorStore`.
 
-Для файлов используется fingerprint:
-
-```text
-полный путь + размер + LastWriteTimeUtc
-```
-
-На основании fingerprint определяется, нужно ли переиндексировать файл.
-
-Если файл не изменился:
+Постоянные данные индекса хранятся в:
 
 ```text
-RAG changed files: 0
-```
-
-и embedding документа повторно не отправляется в LM Studio.
-
-Если файл изменился, переиндексируется только этот файл.
-
-### Хранение индекса
-
-В каталоге `%LOCALAPPDATA%` создаются persistent данные RAG:
-
-```text
-%LOCALAPPDATA%\SampleMcpServer\RagIndex\
-    metadata.json
+%LOCALAPPDATA%\SampleMcpServer\RagIndex    metadata.json
     documents.json
 ```
 
-`documents.json` содержит текст документов и уже рассчитанные embeddings.
+В `metadata.json` хранится информация о версии формата, embedding-модели, размерности вектора и индексированных файлах.
 
-FAISS остаётся in-memory и при запуске восстанавливается из сохранённых embeddings.
+В `documents.json` сохраняются текст документов и рассчитанные embeddings. При запуске FAISS индекс восстанавливается в памяти из сохранённых векторов.
 
-### Metadata
+### Обновление индекса
 
-В metadata сохраняется как минимум:
+Для каждого файла создаётся fingerprint из:
 
 ```text
-EmbeddingModel
-EmbeddingDimension
-Files
-    FilePath
-    Fingerprint
-    Sections
-        Id
-        Content
-        Embedding
+полный путь + размер файла + LastWriteTimeUtc
 ```
 
-Это позволяет обнаруживать:
+Если fingerprint не изменился, embedding уже сохранённого документа повторно не генерируется.
 
-- смену embedding-модели;
-- смену размерности embedding;
-- изменение файлов;
-- удаление файлов.
+Для изменившегося файла:
 
-При несовместимости embedding-модели или размерности индекс перестраивается.
+1. старые chunks удаляются;
+2. файл заново декодируется;
+3. для новых chunks рассчитываются embeddings;
+4. новые данные сохраняются в persistent storage;
+5. in-memory FAISS индекс пересоздаётся из актуального набора embeddings.
 
-## Поддерживаемые файлы
+Также обрабатывается удаление файлов из исходного набора.
 
-RAG loader использует:
+Если изменилась embedding-модель или размерность embeddings, текущая реализация считает сохранённый индекс несовместимым и начинает его перестроение.
 
-- PDF
-- DOCX
-- XLSX
-- PPTX
-- TXT
-- MD
-- CSV
-- LOG
-- JSON
-- XML
-- HTML
-- YAML
-- исходный код и другие текстовые файлы из настроенного набора расширений.
+## Поддерживаемые документы
 
-Для известных текстовых расширений файл читается напрямую; `FileUtils.IsPlainText()` используется как fallback для неизвестных расширений.
+`RagDocumentLoader` поддерживает:
 
-## Конфигурация MCP
+- PDF;
+- DOCX;
+- XLSX;
+- PPTX;
+- TXT;
+- Markdown;
+- CSV;
+- LOG;
+- JSON;
+- XML;
+- HTML;
+- YAML;
+- исходный код и другие текстовые форматы из настроенного списка расширений.
 
-Обычная конфигурация `my-mcp-example` не должна содержать `EMBEDD_ENDPOINT` или обязательный `EMBEDD_MODEL`.
+Для неизвестных расширений используется дополнительная проверка `FileUtils.IsPlainText()` по сигнатуре файла.
 
-Минимально для RAG требуется:
+DOCX обрабатывается отдельным `MyWordExtractor`, который группирует содержимое по заголовкам и приблизительно определяет номер страницы.
 
-```json
-{
-  "mcpServers": {
-    "my-mcp-example": {
-      "command": "C:\\Users\\user\\.lmstudio\\SampleMcpServer\\SampleMcpServer.exe",
-      "env": {
-        "EMBEDD_KEY": "<LM-Studio-API-token>"
-      }
-    }
-  }
-}
+## Поиск в FAISS
+
+`FaissVectorStore` реализует `VectorStore` поверх FAISS.
+
+Используемый индекс:
+
+```text
+IDMap,HNSW32
+METRIC_INNER_PRODUCT
 ```
 
-`EMBEDD_MODEL` можно добавить как ручной override.
+Векторное измерение фиксируется по фактическому embedding первого добавленного документа. При попытке добавить вектор другой размерности генерируется ошибка.
+
+## MCP-инструменты и описание для модели
+
+Для MCP-инструментов унифицированы XML-документация C# и атрибуты `Description`.
+
+Особое внимание уделено описаниям:
+
+- назначения инструмента;
+- параметров;
+- допустимых значений и ограничений;
+- результата;
+- исключений и порогов поиска.
+
+Эти описания являются частью метаданных MCP-инструментов и используются MCP-клиентом/моделью при выборе подходящего инструмента.
+
+## Конфигурация поиска в интернете
+
+### Internet Search
+
+Набор поисковых движков задаётся WEB_SEARCH_ENGINES= через запятую:
+
+```text
+WEB_SEARCH_ENGINES=DuckDuckGo,Firecrawl,Baidu
+```
+
+Дополнительные параметры:
+
+```text
+WEB_SEARCH_FirecrawApiKey=<Firecrawl API key>
+WEB_SEARCH_duckduckgoRegion=<DuckDuckGo region>
+```
+
+Поддерживаются:
+
+- DuckDuckGo HTML search;
+- Firecrawl search-and-scrape;
+- Baidu search.
+
+### GitHub Search
+
+GitHub-токен читается из:
+
+```text
+GUTHUB_TOKEN=<GitHub token>
+```
+
+Инструмент предоставляет поиск:
+
+- репозиториев;
+- исходного кода с последующей загрузкой найденных файлов.
 
 ## Сборка
 
-Обычная проверка:
+Проект рассчитан на .NET 8:
 
-```powershell
+```bash
+dotnet restore
 dotnet build
 ```
 
-Публикация Windows x64:
+Для публикации self-contained single-file приложения настройки заданы в `SampleMcpServer.csproj`.
 
-```powershell
-dotnet publish `
-    -c Release `
-    -r win-x64 `
-    --self-contained true `
-    -o "$env:USERPROFILE\\.lmstudio\\SampleMcpServer"
-```
+## Ограничения текущей реализации
 
-Для FAISS native runtime в проекте используется:
+`MyWordExtractor.DecodeAsync` имеет суффикс `Async`, но фактически выполняет синхронное чтение DOCX и возвращает готовый список.
 
-```xml
-<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-```
+`DuckDuckGoSearch.LoadAsync2` сохраняет параметры `region` и `time` для совместимости сигнатуры, хотя текущий instant-answer запрос их непосредственно не использует.
 
-После публикации в каталоге runtime должна присутствовать:
+`FaissVectorStore` хранит FAISS индекс в памяти. Persistent состояние RAG сохраняется отдельно в JSON и используется для восстановления индекса при новом запуске.
 
-```text
-FaissNetNative.dll
-```
+## Лицензия
 
-## Проверенный RAG-сценарий
+Проект распространяется по лицензии **MIT**.
 
-Файл:
+Полный текст лицензии находится в файле [`LICENSE`](LICENSE).
 
-```text
-C:\Users\user\SampleMcpServer\test.txt
-```
+Лицензия MIT разрешает использовать, копировать, изменять, объединять,
+публиковать, распространять, сублицензировать и продавать программное
+обеспечение при сохранении уведомления об авторских правах и текста лицензии.
 
-Запрос:
-
-```text
-SampleMcpServer
-```
-
-Проверенный результат:
-
-```text
-Search results count: 1
-Score ≈ 0.6932352781
-```
-
-При повторном запросе без изменения файла:
-
-```text
-RAG changed files: 0
-```
-
-и document embedding повторно не создаётся.
-
-## Важное замечание о cold start
-
-В текущей рабочей версии остаётся отдельная проблема: при новом MCP-сеансе LM Studio иногда наблюдается примерно 60-секундный timeout до начала фактической обработки RAG. При этом после начала обработки сам RAG завершается успешно и возвращает результат.
-
-Эта проблема **не считается решённой** в текущем коммите `b275889` и должна исследоваться отдельно, не смешивая изменения с уже работающим persistent RAG.
-
-## Безопасная точка возврата
-
-Если дальнейший эксперимент с cold start окажется неудачным:
-
-```powershell
-git reset --hard b275889
-```
-
-После этого проект возвращается к последней подтверждённо рабочей версии persistent RAG.

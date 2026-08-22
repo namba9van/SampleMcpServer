@@ -1,4 +1,6 @@
-//https://github.com/virex-84
+/// <summary>
+/// Provides file-format detection helpers based on file signatures.
+/// </summary>
 public class FileUtils
 {
     private static readonly Dictionary<string, List<byte[]>> fileSignatures = new()
@@ -32,7 +34,7 @@ public class FileUtils
                 new byte[] { 0xFF, 0xD8, 0xFF, 0xDB },
             }
         },
-        { "zip", new List<byte[]> // also docx, xlsx, pptx, ...
+        { "zip", new List<byte[]>
             {
                 new byte[] { 0x50, 0x4B, 0x03, 0x04 },
                 new byte[] { 0x50, 0x4B, 0x4C, 0x49, 0x54, 0x45 },
@@ -93,41 +95,40 @@ public class FileUtils
             }
         },
     };
-
+    /// <summary>
+    /// Detects a known file type from the leading bytes of a stream and restores the stream position.
+    /// </summary>
+    /// <param name="reader">The binary reader positioned at the beginning of the file.</param>
+    /// <returns>The detected extension without a leading dot, or <see langword="null"/> when no signature matches.</returns>
     public static string? GetFileExtensionFromHeader(BinaryReader reader)
     {
-        // Вычисляем максимальную длину всех сигнатур
         int maxSignatureLength = fileSignatures.Values.Max(list => list.Max(arr => arr.Length));
 
-        // Считываем байты из начала файла
         byte[] headerBytes = reader.ReadBytes(maxSignatureLength);
 
-        // Перемещаем позицию обратно, чтобы не мешать дальнейшему чтению файла
         reader.BaseStream.Seek(0, SeekOrigin.Begin);
 
-        // Перебираем словарь и ищем совпадение
         foreach (var signatureEntry in fileSignatures)
         {
-            // Перебираем все возможные сигнатуры для данного расширения
             foreach (var signature in signatureEntry.Value)
             {
-                // Проверяем, что считанных байтов достаточно для сравнения
                 if (headerBytes.Length >= signature.Length)
                 {
-                    // Сравниваем сигнатуру с заголовком файла
                     if (headerBytes.Take(signature.Length).SequenceEqual(signature))
                     {
-                        // Если совпадение найдено, возвращаем расширение
                         return signatureEntry.Key;
                     }
                 }
             }
         }
 
-        // Если совпадение не найдено
         return null;
     }
-
+    /// <summary>
+    /// Determines whether a file starts with a recognized text encoding signature.
+    /// </summary>
+    /// <param name="fileName">The path of the file to inspect.</param>
+    /// <returns><see langword="true"/> when the file header is recognized as text; otherwise, <see langword="false"/>.</returns>
     public static bool IsPlainText(string fileName)
     {
         using (FileStream stream = File.Open(fileName, FileMode.Open))
@@ -137,4 +138,3 @@ public class FileUtils
         }
     }
 }
-

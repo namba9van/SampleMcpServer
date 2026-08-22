@@ -1,20 +1,21 @@
-﻿//https://github.com/virex-84
-
 using Newtonsoft.Json;
 using static WebPageLoader;
-
+/// <summary>
+/// Provides access to Baidu web search results.
+/// </summary>
 public class BaiduSearch
 {
+    /// <summary>
+    /// Queries Baidu and maps non-empty result summaries to common search-result items.
+    /// </summary>
+    /// <param name="query">The search query.</param>
+    /// <param name="top">The maximum number of results requested from Baidu.</param>
+    /// <returns>The matching search-result items.</returns>
     public static async Task<IEnumerable<WebPageLoader.SearchResultItem>> LoadAsync(string query, int top)
     {
         var result = new List<SearchResultItem>();
 
         query = Uri.EscapeDataString(query);
-
-        //rn - ограничение в поиск от 1 до 50
-        //cr=ru - приоритет на русском языке
-        //ie=utf-8 - для корректного отображения на кириллице
-        //pn=1 новостная лента
 
         var cr = "ru";
 
@@ -32,58 +33,56 @@ public class BaiduSearch
         return result;
     }
 
-    /*
-    class Author
-    {
-        public string name { get; set; }
-        public string url { get; set; }
-    }
-
-    class Category
-    {
-        public string label { get; set; }
-        public string value { get; set; }
-    }
-    */
-
+    /// <summary>
+    /// Represents a Baidu search result entry.
+    /// </summary>
     class Entry
     {
+        /// <summary>
+        /// Gets or sets the result title returned by Baidu.
+        /// </summary>
         public string title { get; set; }
+
+        /// <summary>
+        /// Gets or sets the result abstract text.
+        /// </summary>
         public string abs { get; set; }
+
+        /// <summary>
+        /// Gets or sets the result URL.
+        /// </summary>
         public string url { get; set; }
+
+        /// <summary>
+        /// Gets or sets the encoded result URL.
+        /// </summary>
         public string urlEnc { get; set; }
+
+        /// <summary>
+        /// Gets or sets the result timestamp.
+        /// </summary>
         public string time { get; set; }
-        /*
-        public string source { get; set; }
-        public Category category { get; set; }
-
-        public string imgUrl { get; set; }
-
-        public string relate { get; set; }
-        public string same { get; set; }
-        public string pn { get; set; }
-        */
     }
 
+    /// <summary>
+    /// Represents the result feed returned by Baidu.
+    /// </summary>
     class Feed
     {
-        /*
-        public string requestUrl { get; set; }
-        public string updated { get; set; }
-        public string description { get; set; }
-        public string relateUrl { get; set; }
-        public Category category { get; set; }
-        public Author author { get; set; }
-        public string all { get; set; }
-        public string resultnum { get; set; }
-        public string pn { get; set; }
-        public string rn { get; set; }
-        */
+        /// <summary>
+        /// Gets or sets the result entries.
+        /// </summary>
         public List<Entry> entry { get; set; }
     }
 
+    /// <summary>
+    /// Represents the root of the Baidu JSON response.
+    /// </summary>
     class Root
     {
+        /// <summary>
+        /// Gets or sets the Baidu result feed.
+        /// </summary>
         public Feed feed { get; set; }
     }
 }

@@ -1,14 +1,21 @@
-﻿//https://github.com/virex-84
+/// <summary>
+/// Provides simple HTTP GET and form-encoded POST helpers for web search providers.
+/// </summary>
 public static class WebPageLoader
 {
+    /// <summary>
+    /// Sends a form-encoded HTTP POST request and returns the response body.
+    /// </summary>
+    /// <param name="url">The request URL.</param>
+    /// <param name="timeout">The request timeout.</param>
+    /// <param name="postData">The form fields to submit.</param>
+    /// <returns>The response body, or the HTTP exception message when the request fails.</returns>
     public static async Task<string> Post(string url, TimeSpan timeout, Dictionary<string, string> postData)
     {
         using HttpClient client = new() { Timeout = timeout };
 
-        // Создаем контент для POST-запроса, кодируя данные формы
         using var content = new FormUrlEncodedContent(postData);
 
-        // Отправляем POST-запрос
         try
         {
             var response = await client.PostAsync(url, content);
@@ -25,12 +32,17 @@ public static class WebPageLoader
             return ex.Message;
         }
     }
-
-    public static async Task<string> Get(string url, TimeSpan timeout, Dictionary<string,string?>? headers = null) 
+    /// <summary>
+    /// Sends an HTTP GET request with optional headers and returns the response body.
+    /// </summary>
+    /// <param name="url">The request URL.</param>
+    /// <param name="timeout">The request timeout.</param>
+    /// <param name="headers">Optional HTTP headers.</param>
+    /// <returns>The response body, or the HTTP exception message when the request fails.</returns>
+    public static async Task<string> Get(string url, TimeSpan timeout, Dictionary<string,string?>? headers = null)
     {
         using HttpClient client = new() { Timeout = timeout };
 
-        // Отправляем GET-запрос
         try
         {
             var request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -56,10 +68,24 @@ public static class WebPageLoader
         }
     }
 
+    /// <summary>
+    /// Represents a normalized web-search result.
+    /// </summary>
     public class SearchResultItem
     {
+        /// <summary>
+        /// Gets or sets the result title.
+        /// </summary>
         public string? Title { get; set; }
+
+        /// <summary>
+        /// Gets or sets the result URL.
+        /// </summary>
         public string? Link { get; set; }
+
+        /// <summary>
+        /// Gets or sets the result snippet or extracted content.
+        /// </summary>
         public string? Content { get; set; }
     }
 }

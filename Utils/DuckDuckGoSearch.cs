@@ -1,12 +1,19 @@
-//https://github.com/virex-84
-
 using HtmlAgilityPack;
 using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 using static WebPageLoader;
-
+/// <summary>
+/// Provides access to DuckDuckGo HTML and instant-answer search endpoints.
+/// </summary>
 public static class DuckDuckGoSearch
 {
+    /// <summary>
+    /// Searches the DuckDuckGo HTML endpoint and extracts result titles, links, and snippets.
+    /// </summary>
+    /// <param name="query">The search query.</param>
+    /// <param name="region">An optional DuckDuckGo region code.</param>
+    /// <param name="time">An optional time-range filter.</param>
+    /// <returns>The parsed search results.</returns>
     public static async Task<List<SearchResultItem>> LoadAsync(string query, string? region = null, string? time = null)
     {
         var result = new List<SearchResultItem>();
@@ -22,7 +29,6 @@ public static class DuckDuckGoSearch
             var doc = new HtmlDocument();
             doc.LoadHtml(page);
 
-            
             var resultNodes = doc.DocumentNode.SelectNodes("//div[contains(@class, 'results_links_deep')]");
 
             if (resultNodes != null)
@@ -51,17 +57,20 @@ public static class DuckDuckGoSearch
 
         return result;
     }
-
-    //метод получения общей информации
-    //например: "москва" - выдаст результат
-    //"погода в москве" - результат будет пустым
+    /// <summary>
+    /// Queries the DuckDuckGo instant-answer endpoint.
+    /// </summary>
+    /// <param name="query">The search query.</param>
+    /// <param name="region">An optional region value retained for API compatibility.</param>
+    /// <param name="time">An optional time filter retained for API compatibility.</param>
+    /// <returns>A list containing the returned instant-answer summary.</returns>
     public static async Task<List<SearchResultItem>> LoadAsync2(string query, string? region = null, string? time = null)
     {
         var result = new List<SearchResultItem>();
 
         query = Uri.EscapeDataString(query);
 
-        var headers = new Dictionary<string, string?>() { { "accept-language", "ru" } }; //минимальный набор заголовков без которых не будет результата
+        var headers = new Dictionary<string, string?>() { { "accept-language", "ru" } };
         var page = await WebPageLoader.Get($"https://api.duckduckgo.com/?q={query}&format=json&no_redirect=1&no_html=1&skip_disambig=1", TimeSpan.FromSeconds(30), headers);
 
         var data = JsonConvert.DeserializeObject<Root>(page);
@@ -70,12 +79,29 @@ public static class DuckDuckGoSearch
 
         return result;
     }
-
+    /// <summary>
+    /// Represents the subset of the DuckDuckGo instant-answer response used by the server.
+    /// </summary>
     public class Root
     {
+        /// <summary>
+        /// Gets or sets the source name of the instant answer.
+        /// </summary>
         public string AbstractSource { get; set; }
+
+        /// <summary>
+        /// Gets or sets the instant-answer summary.
+        /// </summary>
         public string AbstractText { get; set; }
+
+        /// <summary>
+        /// Gets or sets the canonical result URL.
+        /// </summary>
         public string AbstractURL { get; set; }
+
+        /// <summary>
+        /// Gets or sets the result heading.
+        /// </summary>
         public string Heading { get; set; }
     }
 
