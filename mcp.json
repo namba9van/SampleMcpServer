@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "my-mcp-example": {
+      "command": "C:\\Users\\user\\.lmstudio\\SampleMcpServer\\SampleMcpServer.exe",
+      "env": {
+        "WEB_SEARCH_ENABLE_DUCKDUCKGO": "true",
+        "WEB_SEARCH_ENABLE_YANDEX": "false",
+        "WEB_SEARCH_ENABLE_BAIDU": "true",
+        "WEB_SEARCH_ENABLE_MOJEEK": "false",
+        "WEB_SEARCH_ENABLE_MARGINALIA": "true",
+        "WEB_SEARCH_ENABLE_QWANT": "false",
+        "WEB_SEARCH_ENABLE_ECOSIA": "false",
+        "WEB_SEARCH_ENABLE_SOGOU": "false",
+        "WEB_SEARCH_ENABLE_SEARXNG": "false",
+        "WEB_SEARCH_ENABLE_FIRECRAWL": "true",
+        "WEB_SEARCH_DUCKDUCKGO_REGION": "ru-ru",
+        "WEB_SEARCH_MARGINALIA_API_KEY": "",
+        "WEB_SEARCH_FIRECRAWL_API_KEY": "",
+        "WEB_SEARCH_SEARXNG_URL": "",
+        "GITHUB_TOKEN": "",
+        "EMBEDD_ENDPOINT": "http://127.0.0.1:1234/v1",
+        "EMBEDD_KEY": "",
+        "EMBEDD_MODEL": ""
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+# .NET
+bin/
+obj/
+out/
+publish/
+artifacts/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Тестовые и локальные данные
+TestResults/
+coverage/
+*.log
+.env
+.env.*
+mcp.local.json
+
+# Локальные индексы и временные данные
+RagIndex/
+SampleMcpServer/RagIndex/
+
+# ОС
+.DS_Store
+Thumbs.db
