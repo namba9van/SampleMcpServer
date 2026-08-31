@@ -309,27 +309,3 @@ dotnet build
 }
 ```
 
-### Публикация EXE
-
-Для Windows x64:
-
-```powershell
-dotnet clean
-dotnet restore
-dotnet build
-dotnet publish -c Release -r win-x64 --self-contained true
-```
-
-После публикации укажите фактический путь к `SampleMcpServer.exe` в `mcp.json`.
-
-### Перед отправкой на GitHub
-
-```powershell
-dotnet clean
-dotnet restore
-dotnet build
-git status
-git diff --cached
-```
-
-Не публикуйте реальные значения `GITHUB_TOKEN`, `EMBEDD_KEY`, `WEB_SEARCH_FIRECRAWL_API_KEY`, `WEB_SEARCH_MARGINALIA_API_KEY` или ключи агентов.
