@@ -1,15 +1,39 @@
 DEPLOYMENT (lite: без agent_chat/agent_dialog/ChatSupervizer)
 
-После dotnet build -c Release готовый комплект находится в:
-  _Release\
+Собрать все поддерживаемые платформы на Windows:
+  .\build-release.ps1
 
-Внутри:
-  _Release\SampleMcpServer.exe
+Результат:
+  _Release\win-x64\   Windows x64 (win-x64)
+  _Release\mac\       macOS Apple Silicon (osx-arm64)
+  _Release\linux\     Linux x64 (linux-x64)
 
-Переносите папку _Release целиком в рабочую папку LM Studio:
+Для сборки только одной платформы:
+  .\build-win.ps1
+  .\build-mac.ps1
+  .\build-linux.ps1
+
+WINDOWS / LM STUDIO:
+  Копируйте содержимое _Release\win-x64 в:
   C:\Users\user\.lmstudio\SampleMcpServer\
 
-MCP путь из mcp.json:
+  Основной файл после копирования:
   C:\Users\user\.lmstudio\SampleMcpServer\SampleMcpServer.exe
 
-Ничего из комплекта переносить по отдельности не требуется.
+  mcp.json.example рассчитан на Windows-путь к SampleMcpServer.exe.
+
+MACOS:
+  Используйте содержимое _Release\mac.
+  Исполняемый файл: SampleMcpServer
+  RID: osx-arm64 (Apple Silicon).
+
+LINUX:
+  Используйте содержимое _Release\linux.
+  Исполняемый файл: SampleMcpServer
+  RID: linux-x64.
+
+После переноса macOS/Linux сборки при необходимости:
+  chmod +x SampleMcpServer
+
+Cross-publish необходимо дополнительно проверить на целевой ОС, особенно если
+используются зависимости с нативными библиотеками.

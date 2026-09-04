@@ -1,20 +1,31 @@
 $ErrorActionPreference = 'Stop'
+
+# Собирает все поддерживаемые release-цели из одного сеанса PowerShell на Windows.
+# Структура результата:
+#   _Release\win-x64  -> Windows x64 (win-x64)
+#   _Release\mac      -> macOS Apple Silicon (osx-arm64)
+#   _Release\linux    -> Linux x64 (linux-x64)
 $root = $PSScriptRoot
-$out = Join-Path $root '_Release'
+$releaseRoot = Join-Path $root '_Release'
 
-Write-Host "Cleaning release folder: $out" -ForegroundColor Cyan
-if (Test-Path $out) { Remove-Item $out -Recurse -Force }
-New-Item -ItemType Directory -Path $out -Force | Out-Null
+Write-Host "Cleaning release root: $releaseRoot" -ForegroundColor Cyan
+if (Test-Path $releaseRoot) { Remove-Item $releaseRoot -Recurse -Force }
+New-Item -ItemType Directory -Path $releaseRoot -Force | Out-Null
 
-Write-Host "Building SampleMcpServer (Release)..." -ForegroundColor Cyan
-dotnet build (Join-Path $root 'SampleMcpServer.csproj') -c Release
+$buildScripts = @(
+    'build-win.ps1',
+    'build-mac.ps1',
+    'build-linux.ps1'
+)
 
-$serverExe = Join-Path $out 'SampleMcpServer.exe'
+foreach ($script in $buildScripts) {
+    Write-Host "" 
+    Write-Host "Running $script..." -ForegroundColor Cyan
+    & (Join-Path $root $script)
+}
 
-if (-not (Test-Path $serverExe)) { throw "SampleMcpServer.exe не найден: $serverExe" }
-
-Write-Host "Release bundle is ready:" -ForegroundColor Green
-Write-Host "  $serverExe"
 Write-Host ""
-Write-Host "Для LM Studio переносите ВСЮ папку _Release целиком." -ForegroundColor Yellow
-Write-Host "Ожидаемая структура: _Release\SampleMcpServer.exe" -ForegroundColor Yellow
+Write-Host "All release bundles are ready:" -ForegroundColor Green
+Write-Host "  $releaseRoot\win-x64"
+Write-Host "  $releaseRoot\mac"
+Write-Host "  $releaseRoot\linux"

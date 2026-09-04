@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <RuntimeIdentifiers>win-x64;win-arm64;osx-arm64;linux-x64;linux-arm64;linux-musl-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>win-x64;osx-arm64;linux-x64</RuntimeIdentifiers>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -28,14 +28,8 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
 </PropertyGroup>
 
-  <!-- Release builds are collected in a simple, predictable _Release folder. -->
-  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <OutputPath>$(MSBuildProjectDirectory)\_Release\</OutputPath>
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-    <PublishDir>$(MSBuildProjectDirectory)\_Release\</PublishDir>
-  </PropertyGroup>
+  <!-- Целевой RID и каталог Release задаются build-скриптами явно. -->
+  <!-- Это позволяет выполнять cross-publish с Windows без принудительного win-x64. -->
 
   <!-- Включает дополнительные файлы в пакет MCP-сервера. -->
   <ItemGroup>

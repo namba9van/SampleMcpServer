@@ -11,7 +11,10 @@
 - `random_number` — генерация случайного целого числа;
 - `time` — получение локального и UTC-времени, даты, смещения часового пояса и временной метки;
 - `calc` — арифметические операции;
-- `file_operations` — создание, чтение и перечисление файлов;
+- `write_file` — создание нового текстового файла без возможности перезаписи существующего;
+- `rewrite_file` — полная замена содержимого только уже существующего текстового файла;
+- `read_file` — чтение текстового файла;
+- `list_files` — список файлов и непосредственных подкаталогов;
 - `internet_search` — параллельный поиск через несколько поисковых систем с фильтрацией, ранжированием и удалением дублей;
 - `github_search` — поиск репозиториев и исходного кода через GitHub API;
 - `rag` — поиск по локальным документам с использованием embedding-моделей и FAISS.
@@ -30,6 +33,10 @@ SampleMcpServer/
 ├── MCP_SELF_TEST.md
 ├── mcp.json.example
 ├── LICENSE
+├── build-release.ps1
+├── build-win.ps1
+├── build-mac.ps1
+├── build-linux.ps1
 ├── Tools/
 │   ├── CalcTools.cs
 │   ├── FileOperationsTools.cs
@@ -50,6 +57,17 @@ SampleMcpServer/
 └── Utils/
     └── поисковые, файловые и RAG-вспомогательные классы
 ```
+
+## Файловые операции
+
+Файловые инструменты специально разделены по назначению:
+
+- `write_file(filename, content)` создаёт только новый файл. Если файл уже существует, инструмент возвращает отказ и не изменяет его. Параметра `overwrite` у `write_file` нет.
+- `rewrite_file(filename, content)` полностью заменяет содержимое только существующего файла. Если файла нет, инструмент не создаёт его и рекомендует использовать `write_file`.
+- `read_file(filename)` читает текстовый файл.
+- `list_files(path)` перечисляет файлы и непосредственные подкаталоги каталога.
+
+Такое разделение предотвращает случайную потерю данных: создание нового файла и намеренная перезапись существующего требуют разных MCP-вызовов.
 
 ## Требования
 
@@ -176,19 +194,55 @@ git diff --cached
 
 Шаблон `mcp.json.example` содержит только пустые значения секретов.
 
-## Публикация
+## Release-сборки для Windows, macOS и Linux
 
-Self-contained single-file приложение можно опубликовать командой:
+Релизные сборки создаются через PowerShell-скрипты. Основной сценарий рассчитан на Windows-машину с установленным .NET 8 SDK и выполняет cross-publish сразу для трёх целевых платформ.
+
+Собрать все три варианта одной командой:
 
 ```powershell
-dotnet publish -c Release
+.\build-release.ps1
 ```
 
-Перед публикацией рекомендуется выполнить:
+Результат:
+
+```text
+_Release/
+├── win-x64/   # Windows x64, RID win-x64
+├── mac/       # macOS Apple Silicon, RID osx-arm64
+└── linux/     # Linux x64, RID linux-x64
+```
+
+Каждая папка содержит self-contained публикацию для своей платформы. Для Windows основной исполняемый файл называется `SampleMcpServer.exe`; для macOS и Linux — `SampleMcpServer`.
+
+Можно собрать только одну платформу:
 
 ```powershell
-dotnet clean
+.\build-win.ps1
+.\build-mac.ps1
+.\build-linux.ps1
+```
+
+Соответствие скриптов:
+
+- `build-win.ps1` → `_Release\win-x64` → `win-x64`;
+- `build-mac.ps1` → `_Release\mac` → `osx-arm64` (Apple Silicon);
+- `build-linux.ps1` → `_Release\linux` → `linux-x64`.
+
+Скрипты используют `dotnet publish -c Release`, self-contained публикацию и single-file режим. Жёсткого `RuntimeIdentifier` в Release-конфигурации проекта больше нет: нужный RID передаёт конкретный build-скрипт, поэтому Windows-машина может подготовить все три варианта.
+
+Перед релизной сборкой рекомендуется проверить проект:
+
+```powershell
+dotnet restore
 dotnet build
+dotnet run --project .\SampleMcpServer.csproj -- --self-test
+```
+
+Cross-publish создаёт файлы для другой ОС, но не заменяет запуск на целевой системе. После сборки macOS/Linux вариант следует хотя бы один раз проверить на соответствующей ОС, особенно если используются NuGet-пакеты с нативными библиотеками. После переноса файлов с Windows на macOS/Linux при необходимости установите исполняемый бит:
+
+```bash
+chmod +x SampleMcpServer
 ```
 
 ## Лицензия
@@ -233,4 +287,4 @@ dotnet build
 
 ## Release bundle
 
-Команда `dotnet build -c Release` собирает единый переносимый комплект в `_Release\`. Переносите папку `_Release` целиком в рабочую папку LM Studio.
+`build-release.ps1` создаёт три независимых release-комплекта в `_Release\win-x64`, `_Release\mac` и `_Release\linux`. Для LM Studio переносите содержимое папки, соответствующей ОС, а не весь `_Release` как один общий runtime. На Windows используйте `_Release\win-x64`.

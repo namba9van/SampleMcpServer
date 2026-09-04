@@ -2,24 +2,38 @@
 
 ## Автоматическая проверка
 
-После сборки исполняемого файла:
+Из корня проекта удобнее запускать проверку через `dotnet run`:
 
 ```powershell
-..\bin\Debug\net8.0\win-x64\SampleMcpServer.exe --self-test
+dotnet run --project .\SampleMcpServer.csproj -- --self-test
 ```
 
-Для опубликованной версии:
+Для опубликованной Windows-сборки:
 
 ```powershell
-.\SampleMcpServer.exe --self-test
+.\_Release\win-x64\SampleMcpServer.exe --self-test
 ```
 
-Команда запускает дочерний экземпляр того же EXE, обменивается с ним JSON-RPC сообщениями через `stdin/stdout` и проверяет базовый жизненный цикл MCP.
+Для macOS/Linux после переноса соответствующей release-папки на целевую ОС:
+
+```bash
+./SampleMcpServer --self-test
+```
+
+Команда запускает дочерний экземпляр того же EXE, обменивается с ним JSON-RPC сообщениями через `stdin/stdout` и проверяет базовый жизненный цикл MCP. Дополнительно самопроверка проверяет файловые инструменты: наличие `write_file` и `rewrite_file`, отсутствие параметра `overwrite` у `write_file`, запрет перезаписи существующего файла через `write_file` и корректную перезапись через `rewrite_file`. Для проверки используются временные файлы, которые удаляются после теста.
 
 ## Интерактивный режим
 
+Из исходников:
+
 ```powershell
-.\SampleMcpServer.exe --inspect
+dotnet run --project .\SampleMcpServer.csproj -- --inspect
+```
+
+Для Windows release-сборки:
+
+```powershell
+.\_Release\win-x64\SampleMcpServer.exe --inspect
 ```
 
 Доступны:

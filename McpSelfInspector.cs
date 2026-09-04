@@ -99,6 +99,95 @@ internal static class McpSelfInspector
                     return HasResult(response) && !HasError(response);
                 });
             }
+
+            var writeTool = toolNames.FirstOrDefault(x =>
+                string.Equals(x, "write_file", StringComparison.OrdinalIgnoreCase));
+            var rewriteTool = toolNames.FirstOrDefault(x =>
+                string.Equals(x, "rewrite_file", StringComparison.OrdinalIgnoreCase));
+
+            await Check("Наличие write_file", () => Task.FromResult(writeTool is not null));
+            await Check("Наличие rewrite_file", () => Task.FromResult(rewriteTool is not null));
+
+            if (writeTool is not null && tools is not null)
+            {
+                await Check("write_file не содержит параметр overwrite", () =>
+                    Task.FromResult(ToolInputDoesNotContainProperty(tools, writeTool, "overwrite")));
+            }
+
+            if (writeTool is not null && rewriteTool is not null)
+            {
+                var testDirectory = Path.Combine(
+                    Path.GetTempPath(),
+                    "SampleMcpServer-SelfTest",
+                    Guid.NewGuid().ToString("N"));
+                var testFile = Path.Combine(testDirectory, "file-operations.txt");
+                var missingFile = Path.Combine(testDirectory, "missing-file.txt");
+
+                Directory.CreateDirectory(testDirectory);
+                try
+                {
+                    await Check("write_file создаёт новый файл", async () =>
+                    {
+                        using var response = await session.RequestAsync("tools/call", new
+                        {
+                            name = writeTool,
+                            arguments = new { filename = testFile, content = "initial" }
+                        });
+
+                        return HasResult(response) && !HasError(response) &&
+                               File.Exists(testFile) &&
+                               string.Equals(await File.ReadAllTextAsync(testFile), "initial", StringComparison.Ordinal);
+                    });
+
+                    await Check("write_file не перезаписывает существующий файл", async () =>
+                    {
+                        using var response = await session.RequestAsync("tools/call", new
+                        {
+                            name = writeTool,
+                            arguments = new { filename = testFile, content = "must-not-replace" }
+                        });
+
+                        return HasResult(response) && !HasError(response) &&
+                               File.Exists(testFile) &&
+                               string.Equals(await File.ReadAllTextAsync(testFile), "initial", StringComparison.Ordinal);
+                    });
+
+                    await Check("rewrite_file перезаписывает существующий файл", async () =>
+                    {
+                        using var response = await session.RequestAsync("tools/call", new
+                        {
+                            name = rewriteTool,
+                            arguments = new { filename = testFile, content = "rewritten" }
+                        });
+
+                        return HasResult(response) && !HasError(response) &&
+                               File.Exists(testFile) &&
+                               string.Equals(await File.ReadAllTextAsync(testFile), "rewritten", StringComparison.Ordinal);
+                    });
+
+                    await Check("rewrite_file не создаёт отсутствующий файл", async () =>
+                    {
+                        using var response = await session.RequestAsync("tools/call", new
+                        {
+                            name = rewriteTool,
+                            arguments = new { filename = missingFile, content = "must-not-create" }
+                        });
+
+                        return HasResult(response) && !HasError(response) && !File.Exists(missingFile);
+                    });
+                }
+                finally
+                {
+                    try
+                    {
+                        Directory.Delete(testDirectory, recursive: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[WARN] Не удалось удалить временные файлы самопроверки: {ex.Message}");
+                    }
+                }
+            }
         }
 
         await Check("Корректный JSON-RPC stdout", () => Task.FromResult(session.ProtocolError is null));
@@ -195,6 +284,32 @@ internal static class McpSelfInspector
 
     private static bool HasError(JsonDocument document) =>
         document.RootElement.TryGetProperty("error", out _);
+
+    private static bool ToolInputDoesNotContainProperty(
+        JsonDocument document,
+        string toolName,
+        string propertyName)
+    {
+        if (!document.RootElement.TryGetProperty("result", out var result) ||
+            !result.TryGetProperty("tools", out var tools) ||
+            tools.ValueKind != JsonValueKind.Array)
+            return false;
+
+        foreach (var tool in tools.EnumerateArray())
+        {
+            if (!tool.TryGetProperty("name", out var name) ||
+                name.ValueKind != JsonValueKind.String ||
+                !string.Equals(name.GetString(), toolName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            return tool.TryGetProperty("inputSchema", out var inputSchema) &&
+                   inputSchema.TryGetProperty("properties", out var properties) &&
+                   properties.ValueKind == JsonValueKind.Object &&
+                   !properties.TryGetProperty(propertyName, out _);
+        }
+
+        return false;
+    }
 
     private static bool TryGetToolNames(JsonDocument document, out List<string> names)
     {

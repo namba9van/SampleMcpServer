@@ -7,32 +7,72 @@ using ModelContextProtocol.Server;
 public class FileOperationsTools
 {
     /// <summary>
-    /// Создаёт текстовый файл и записывает в него переданное содержимое. По умолчанию не
-    /// перезаписывает уже существующий файл — для этого нужно явно передать overwrite=true.
+    /// Создаёт новый текстовый файл и записывает в него переданное содержимое.
+    /// Если файл по указанному пути уже существует, инструмент отказывается от записи
+    /// и не изменяет существующий файл. Для замены содержимого используйте rewrite_file.
     /// </summary>
-    /// <param name="filename">Полный путь к файлу.</param>
+    /// <param name="filename">Полный путь к создаваемому файлу.</param>
     /// <param name="content">Текст для записи.</param>
-    /// <param name="overwrite">true — заменить содержимое существующего файла. По умолчанию false.</param>
     /// <returns>Сообщение о статусе выполнения операции.</returns>
     [McpServerTool]
-    [Description("Создаёт файл с указанным текстовым содержимым. По умолчанию НЕ перезаписывает уже существующий файл — вызов с overwrite=false (по умолчанию) на существующем файле вернёт отказ. Чтобы заменить содержимое существующего файла, повторите вызов с overwrite=true.")]
+    [Description("Создаёт новый текстовый файл. Никогда не перезаписывает существующий файл: если путь уже занят, операция завершается отказом без изменения файла. Для полной замены содержимого существующего файла используйте rewrite_file.")]
     public string WriteFile(
-        [Description("Полный путь к файлу.")] string filename,
-        [Description("Текстовое содержимое для записи.")] string content,
-        [Description("true — перезаписать файл, если он уже существует. По умолчанию false: существующий файл не изменяется.")] bool overwrite = false)
+        [Description("Полный путь к новому файлу. Если файл уже существует, он не будет изменён.")] string filename,
+        [Description("Текстовое содержимое для записи в новый файл.")] string content)
     {
         try
         {
-            var exists = File.Exists(filename);
-            if (exists && !overwrite)
-                return "Файл уже существует и не был изменён. Чтобы перезаписать его содержимое, повторите вызов с overwrite=true.";
-
-            File.WriteAllText(filename, content);
-            return exists ? "Файл перезаписан." : "Файл создан.";
+            // FileMode.CreateNew гарантирует на уровне файловой системы, что существующий
+            // файл не будет перезаписан даже при одновременном создании из другого процесса.
+            using var stream = new FileStream(filename, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+            using var writer = new StreamWriter(stream);
+            writer.Write(content);
+            return "Файл создан.";
+        }
+        catch (IOException) when (File.Exists(filename))
+        {
+            return "Файл уже существует и не был изменён. Для полной замены его содержимого используйте rewrite_file.";
         }
         catch (Exception ex)
         {
-            return $"Ошибка записи файла: {ex.Message}";
+            return $"Ошибка создания файла: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Полностью заменяет содержимое существующего текстового файла.
+    /// Если файл по указанному пути отсутствует, инструмент отказывается от операции
+    /// и не создаёт новый файл. Для создания нового файла используйте write_file.
+    /// </summary>
+    /// <param name="filename">Полный путь к существующему файлу.</param>
+    /// <param name="content">Новое текстовое содержимое файла.</param>
+    /// <returns>Сообщение о статусе выполнения операции.</returns>
+    [McpServerTool]
+    [Description("Полностью перезаписывает существующий текстовый файл новым содержимым. Не создаёт файл, если он отсутствует; для создания нового файла используйте write_file.")]
+    public string RewriteFile(
+        [Description("Полный путь к существующему файлу, содержимое которого нужно полностью заменить.")] string filename,
+        [Description("Новое текстовое содержимое, которое полностью заменит текущее содержимое файла.")] string content)
+    {
+        try
+        {
+            // FileMode.Truncate требует существования файла и поэтому не может случайно
+            // создать новый файл вместо запрошенной операции перезаписи.
+            using var stream = new FileStream(filename, FileMode.Truncate, FileAccess.Write, FileShare.None);
+            using var writer = new StreamWriter(stream);
+            writer.Write(content);
+            return "Файл перезаписан.";
+        }
+        catch (FileNotFoundException)
+        {
+            return "Файл не существует и не был создан. Для создания нового файла используйте write_file.";
+        }
+        catch (DirectoryNotFoundException)
+        {
+            return "Каталог для указанного файла не существует. Файл не был создан.";
+        }
+        catch (Exception ex)
+        {
+            return $"Ошибка перезаписи файла: {ex.Message}";
         }
     }
 
