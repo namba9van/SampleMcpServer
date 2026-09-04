@@ -1,4 +1,4 @@
-# SampleMcpServer v1.2.0
+# SampleMcpServer v1.3.0
 
 **SampleMcpServer** — консольный MCP-сервер на .NET 8 с транспортом `stdio`.
 Проект предоставляет инструменты для вычислений, работы с файлами, времени,
