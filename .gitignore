@@ -4,6 +4,7 @@ obj/
 out/
 publish/
 artifacts/
+_Release/
 
 # Visual Studio / Rider
 .vs/
@@ -24,6 +25,7 @@ coverage/
 *.log
 .env
 .env.*
+mcp.json
 mcp.local.json
 
 # Локальные индексы и временные данные

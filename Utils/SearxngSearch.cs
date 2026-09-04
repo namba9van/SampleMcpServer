@@ -2,8 +2,8 @@ using System.Text.Json;
 using static WebPageLoader;
 
 /// <summary>
-/// Предоставляет доступ к экземпляру SearXNG. API-ключ не требуется.
-/// Описывает назначение элемента.
+/// Предоставляет доступ к экземпляру SearXNG. API-ключ не требуется, но нужен адрес
+/// работающего экземпляра (см. параметр baseUrl / переменную WEB_SEARCH_SEARXNG_URL).
 /// </summary>
 public static class SearxngSearch
 {

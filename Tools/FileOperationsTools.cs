@@ -1,99 +1,89 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
-using System.Text;
+
 /// <summary>
 /// Предоставляет базовые операции файловой системы как MCP-инструменты.
 /// </summary>
 public class FileOperationsTools
 {
     /// <summary>
-    /// Создаёт один новый текст файл и записывает переданное содержимое для it.
+    /// Создаёт текстовый файл и записывает в него переданное содержимое. По умолчанию не
+    /// перезаписывает уже существующий файл — для этого нужно явно передать overwrite=true.
     /// </summary>
-    /// <param name="filename">full путь из файл для create.</param>
+    /// <param name="filename">Полный путь к файлу.</param>
     /// <param name="content">Текст для записи.</param>
-    /// <returns>статус message describing outcome.</returns>
+    /// <param name="overwrite">true — заменить содержимое существующего файла. По умолчанию false.</param>
+    /// <returns>Сообщение о статусе выполнения операции.</returns>
     [McpServerTool]
-    [Description("Создаёт новый файл с указанным текстовым содержимым; существующий файл никогда не перезаписывается.")]
-
+    [Description("Создаёт файл с указанным текстовым содержимым. По умолчанию НЕ перезаписывает уже существующий файл — вызов с overwrite=false (по умолчанию) на существующем файле вернёт отказ. Чтобы заменить содержимое существующего файла, повторите вызов с overwrite=true.")]
     public string WriteFile(
         [Description("Полный путь к файлу.")] string filename,
-        [Description("Текстовое содержимое для записи.")] string content
-    )
+        [Description("Текстовое содержимое для записи.")] string content,
+        [Description("true — перезаписать файл, если он уже существует. По умолчанию false: существующий файл не изменяется.")] bool overwrite = false)
     {
         try
         {
-            if (File.Exists(filename))
-                return "Such a file already exists!";
+            var exists = File.Exists(filename);
+            if (exists && !overwrite)
+                return "Файл уже существует и не был изменён. Чтобы перезаписать его содержимое, повторите вызов с overwrite=true.";
 
             File.WriteAllText(filename, content);
-            return "Context write successful.";
+            return exists ? "Файл перезаписан." : "Файл создан.";
         }
         catch (Exception ex)
         {
-            return $"Error write context to file: {ex.Message}";
+            return $"Ошибка записи файла: {ex.Message}";
         }
     }
+
     /// <summary>
-    /// Читает содержимое из один текст файл с использованием encoding detected из его BOM.
+    /// Читает содержимое текстового файла. Кодировка определяется автоматически по BOM файла
+    /// (аналогично поведению File.ReadAllText без явно указанной кодировки), UTF-8 используется
+    /// как запасной вариант при отсутствии BOM.
     /// </summary>
-    /// <param name="filename">full путь из файл для чтения.</param>
-    /// <returns>decoded файл содержимое.</returns>
+    /// <param name="filename">Полный путь к читаемому файлу.</param>
+    /// <returns>Декодированное содержимое файла.</returns>
     [McpServerTool]
     [Description("Читает текстовый файл по указанному пути.")]
-
     public string ReadFile(
-    [Description("Полный путь к файлу.")] string filename)
+        [Description("Полный путь к файлу.")] string filename)
     {
         try
         {
-            Encoding encoding = Encoding.Unicode;
-            using (StreamReader reader = new StreamReader(filename, true))
-            {
-                while (reader.Peek() >= 0)
-                {
-                    encoding = reader.CurrentEncoding;
-                    break;
-                }
-                reader.Close();
-            }
-
-            return File.ReadAllText(filename, encoding);
+            return File.ReadAllText(filename);
         }
         catch (Exception ex)
         {
-            return $"Error reading file: {ex.Message}";
+            return $"Ошибка чтения файла: {ex.Message}";
         }
     }
+
     /// <summary>
-    /// Описывает назначение элемента.
+    /// Перечисляет файлы и непосредственные подкаталоги указанного каталога.
     /// </summary>
     /// <param name="path">Путь к каталогу для проверки.</param>
-    /// <returns>formatted список из файлы и directories, или один ошибки message.</returns>
+    /// <returns>Отформатированный список файлов и подкаталогов либо сообщение об ошибке.</returns>
     [McpServerTool]
     [Description("Возвращает файлы и непосредственные подкаталоги указанного каталога.")]
-
     public string ListFiles(
         [Description("Путь к каталогу для проверки.")] string path)
     {
         try
         {
             if (!Directory.Exists(path))
-            {
-                return $"Error: Directory '{path}' does not exist.";
-            }
+                return $"Ошибка: каталог '{path}' не существует.";
 
             var files = Directory.GetFiles(path);
             var directories = Directory.GetDirectories(path);
 
-            var result = new List<string>();
-            result.Add("Files:");
+            var result = new List<string> { "Файлы:" };
             foreach (var file in files)
             {
                 var fileInfo = new FileInfo(file);
-                result.Add($"  {fileInfo.Name} ({fileInfo.Length} bytes)");
+                result.Add($"  {fileInfo.Name} ({fileInfo.Length} байт)");
             }
 
-            result.Add("\nDirectories:");
+            result.Add("\nПодкаталоги:");
             foreach (var directory in directories)
             {
                 var dirInfo = new DirectoryInfo(directory);
@@ -104,7 +94,7 @@ public class FileOperationsTools
         }
         catch (Exception ex)
         {
-            return $"Error listing files: {ex.Message}";
+            return $"Ошибка получения списка файлов: {ex.Message}";
         }
     }
 }

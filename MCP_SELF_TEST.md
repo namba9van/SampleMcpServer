@@ -31,25 +31,3 @@
 ## Важное правило stdio
 
 Обычный MCP-сервер должен писать протокольные сообщения только в `stdout`. Логи диагностики направляются в `stderr`. Встроенный инспектор соблюдает это разделение.
-
-## Проверка потокового диалога агентов
-
-Инструмент `agent_dialog` использует стандартные MCP `notifications/progress`.
-Для проверки реального потока при настроенных моделях:
-
-```powershell
-$env:MCP_AGENT_SELF_TEST="true"
-$env:AGENT_A_MODEL="model-a"
-$env:AGENT_B_MODEL="model-b"
-.\SampleMcpServer.exe --self-test
-```
-
-В выводе должны появиться строки вида:
-
-```text
-[progress] [A] ...
-[progress] [B] ...
-```
-
-Без `MCP_AGENT_SELF_TEST=true` самопроверка не обращается к моделям и только
-проверяет наличие инструмента `agent_dialog`.

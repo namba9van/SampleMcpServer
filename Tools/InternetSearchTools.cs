@@ -122,7 +122,7 @@ internal class InternetSearchTools
         }
 
         if (tasks.Count == 0)
-            return "No usable search engines are configured. Set WEB_SEARCH_ENGINES or configure the required engine settings.";
+            return "Не настроено ни одной доступной поисковой системы. Задайте WEB_SEARCH_ENGINES или настройте параметры нужных движков.";
 
         var batches = await Task.WhenAll(tasks);
         var candidates = batches.SelectMany(x => x)
@@ -239,8 +239,8 @@ internal class InternetSearchTools
                     .ThenByDescending(x => x.Item.Content?.Length ?? 0)
                     .First();
 
-                // Если другой движок вернул тот же результат с более полным текстом, сохраняем его содержимое.
-                // Если у другого движка тот же результат содержит существенно больше текста, используется это содержимое.
+                // Если у другого движка тот же результат содержит существенно больше текста,
+                // используется содержимое именно от него.
                 var richest = group.OrderByDescending(x => x.Item.Content?.Length ?? 0).First().Item;
                 if ((richest.Content?.Length ?? 0) > (best.Item.Content?.Length ?? 0))
                     best.Item.Content = richest.Content;
@@ -284,7 +284,7 @@ internal class InternetSearchTools
 
             var score = CalculateScore(item, queryTokens);
 
-            // поиск движки может возврат unrelated страницы, especially для broad запросы.
+            // Поисковые движки могут возвращать нерелевантные страницы, особенно на широкие запросы.
             // Не пропускаем результат только потому, что его вернул один из поисковых движков.
             var hasQueryMatch = queryTokens.Count == 0 ||
                 Tokenize(item.Title ?? string.Empty).Intersect(queryTokens).Any() ||

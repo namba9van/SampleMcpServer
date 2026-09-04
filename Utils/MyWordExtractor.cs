@@ -5,13 +5,10 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 /// <summary>
-/// извлекает structured текст разделы из DOCX документы.
+/// Извлекает структурированный текст (разделы) из DOCX-документов.
 /// </summary>
 public class MyWordExtractor
 {
-    /// <summary>
-    /// Представляет раздел документа и его приблизительный номер страницы.
-    /// </summary>
     /// <summary>
     /// Представляет раздел документа и его приблизительный номер страницы.
     /// </summary>
@@ -35,9 +32,9 @@ public class MyWordExtractor
     /// <summary>
     /// Читает DOCX-документ, группирует содержимое по заголовкам и приблизительно определяет номера страниц разделов.
     /// </summary>
-    /// <param name="filename">путь из DOCX файл.</param>
-    /// <returns>извлечённый документ разделы.</returns>
-    public List<Section> DecodeAsync(string filename)
+    /// <param name="filename">Путь к DOCX-файлу.</param>
+    /// <returns>Список извлечённых разделов документа.</returns>
+    public List<Section> Decode(string filename)
     {
         var result = new List<Section>();
 
@@ -99,7 +96,7 @@ public class MyWordExtractor
     /// <summary>
     /// Оценивает номер страницы элемента Open XML по количеству разрывов страниц перед ним.
     /// </summary>
-    /// <param name="element">документ element для которого приблизительный страница число является требуемый.</param>
+    /// <param name="element">Элемент документа, для которого требуется приблизительный номер страницы.</param>
     /// <returns>Приблизительный номер страницы, начиная с единицы.</returns>
     public static int GetPageNumberApproximation(OpenXmlElement element)
     {
@@ -130,9 +127,9 @@ public class MyWordExtractor
         return pageNumber;
     }
     /// <summary>
-    /// Описывает назначение элемента.
+    /// Извлекает видимый текст абзаца, пропуская коды сложных полей.
     /// </summary>
-    /// <param name="paragraph">абзац для extract.</param>
+    /// <param name="paragraph">Абзац, из которого извлекается текст.</param>
     /// <returns>Видимый текст абзаца или пустая строка, если текст отсутствует.</returns>
     private string? ExtractParagraphText(Paragraph paragraph)
     {
@@ -206,8 +203,8 @@ public class MyWordExtractor
     /// <summary>
     /// Создаёт соответствие идентификаторов стилей Word уровням заголовков.
     /// </summary>
-    /// <param name="mainPart">DOCX main документ part containing стиль definitions.</param>
-    /// <returns>стиль идентификатор для heading-level соответствие.</returns>
+    /// <param name="mainPart">Основная часть DOCX-документа, содержащая определения стилей.</param>
+    /// <returns>Соответствие идентификатора стиля уровню заголовка.</returns>
     private Dictionary<string, int> GetHeadingStyles(MainDocumentPart mainPart)
     {
         var headingStyles = new Dictionary<string, int>();
@@ -255,8 +252,8 @@ public class MyWordExtractor
     /// <summary>
     /// Определяет уровень заголовка элемента Open XML по стилю его абзаца.
     /// </summary>
-    /// <param name="element">element для проверить.</param>
-    /// <param name="styles">style-to-level соответствие.</param>
+    /// <param name="element">Проверяемый элемент.</param>
+    /// <param name="styles">Соответствие идентификатора стиля уровню заголовка.</param>
     /// <returns>Уровень заголовка или -1, если элемент не является распознанным заголовком.</returns>
     private int HeadingLevel(OpenXmlElement element, Dictionary<string, int> styles)
     {
@@ -273,7 +270,7 @@ public class MyWordExtractor
     /// <summary>
     /// Преобразует таблицу в представление JSON, используя первую жирную строку как заголовок, если это возможно.
     /// </summary>
-    /// <param name="table">таблица для extract.</param>
+    /// <param name="table">Извлекаемая таблица.</param>
     /// <returns>Данные таблицы в формате JSON с отступами.</returns>
     private string? ExtractTableText(Table table)
     {
@@ -305,10 +302,10 @@ public class MyWordExtractor
         return System.Text.Json.JsonSerializer.Serialize(tableData, options);
     }
     /// <summary>
-    /// Определяет ли все cells в один row contain bold текст.
+    /// Определяет, содержат ли все ячейки одной строки только жирный текст.
     /// </summary>
-    /// <param name="cells">cells из кандидат заголовок row.</param>
-    /// <returns><see langword="true"/> когда every cell содержит один bold run.</returns>
+    /// <param name="cells">Ячейки строки-кандидата на роль заголовка.</param>
+    /// <returns><see langword="true"/>, если каждая ячейка содержит хотя бы один фрагмент с жирным текстом.</returns>
     private bool IsHeaderRow(IEnumerable<TableCell> cells)
     {
         foreach (var cell in cells)

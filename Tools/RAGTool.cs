@@ -16,7 +16,7 @@ public partial class RAGTool
     /// <param name="path">Файл или каталог с документами для индексации.</param>
     /// <param name="query">Поисковый запрос на естественном языке.</param>
     /// <param name="limit">Максимальное количество результатов для возврата.</param>
-    /// <param name="threshold">минимальный балл сходства один результат должен reach.</param>
+    /// <param name="threshold">Минимальный балл сходства, которого должен достичь результат.</param>
     /// <param name="ragIndexService">Управляемый приложением сервис постоянного индекса RAG.</param>
     /// <returns>Массив JSON с именами подходящих файлов, оценками и содержимым либо результатом ошибки.</returns>
     [McpServerTool]
@@ -97,7 +97,7 @@ public partial class RAGTool
                 new RagResult
                 {
                     Content =
-                        $"Error performing RAG search: " +
+                        $"Ошибка выполнения RAG-поиска: " +
                         $"{ex.Message}"
                 });
         }
@@ -118,27 +118,24 @@ public partial class RAGTool
             options);
     }
     /// <summary>
-    /// Представляет один результат возвращённый по RAG поиск инструмент.
-    /// </summary>
-    /// <summary>
-    /// Представляет один результат возвращённый по RAG поиск инструмент.
+    /// Представляет один результат, возвращённый инструментом RAG-поиска.
     /// </summary>
     public class RagResult
     {
         /// <summary>
-        /// Получает или задаёт matched документ содержимое.
+        /// Получает или задаёт содержимое найденного документа.
         /// </summary>
         public string Content { get; set; } =
             string.Empty;
 
         /// <summary>
-        /// Получает или задаёт исходный файл имя.
+        /// Получает или задаёт имя исходного файла.
         /// </summary>
         public string FileName { get; set; } =
             string.Empty;
 
         /// <summary>
-        /// Получает или задаёт балл сходства возвращённый по вектор поиск.
+        /// Получает или задаёт балл сходства, возвращённый векторным поиском.
         /// </summary>
         public double? Score { get; set; }
     }

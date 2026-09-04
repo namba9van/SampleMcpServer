@@ -5,12 +5,12 @@ using System.Text.Json.Serialization;
 namespace Services;
 
 /// <summary>
-/// Представляет один RAG документ фрагмент together с его embedding.
+/// Представляет один фрагмент RAG-документа вместе с его эмбеддингом.
 /// </summary>
 public sealed class RagDocument
 {
     /// <summary>
-    /// Получает или задаёт уникальный идентификатор из документ фрагмент.
+    /// Получает или задаёт уникальный идентификатор фрагмента документа.
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.Always)]
     [VectorStoreKey]
@@ -31,7 +31,7 @@ public sealed class RagDocument
     public string? FileName { get; init; }
 
     /// <summary>
-    /// Получает или задаёт embedding вектор связанный с содержимое.
+    /// Получает или задаёт вектор эмбеддинга, связанный с содержимым.
     /// </summary>
     [JsonIgnore]
     [VectorStoreVector(768)]

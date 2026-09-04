@@ -1,16 +1,16 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 /// <summary>
-/// Предоставляет random число generation as один MCP инструмент.
+/// Предоставляет генерацию случайных чисел как MCP-инструмент.
 /// </summary>
 public class RandomNumberTools
 {
     /// <summary>
-    /// Описывает назначение элемента.
+    /// Генерирует псевдослучайное целое число в заданном диапазоне.
     /// </summary>
-    /// <param name="min">включающий lower bound.</param>
-    /// <param name="max">исключающий upper bound.</param>
-    /// <returns>pseudo-random integer в запрошенный range.</returns>
+    /// <param name="min">Включительная нижняя граница.</param>
+    /// <param name="max">Исключительная верхняя граница.</param>
+    /// <returns>Псевдослучайное целое число в запрошенном диапазоне.</returns>
     [McpServerTool]
     [Description("Генерирует случайное целое число от включительной нижней границы до исключительной верхней границы.")]
 

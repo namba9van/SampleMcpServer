@@ -5,9 +5,6 @@ namespace Services;
 /// <summary>
 /// Определяет доступную в LM Studio embedding-модель.
 /// </summary>
-/// <summary>
-/// Определяет доступную в LM Studio embedding-модель.
-/// </summary>
 public sealed class LmStudioModelDiscovery
 {
     private readonly LmStudioEndpoint _endpoint;
@@ -17,9 +14,9 @@ public sealed class LmStudioModelDiscovery
 
     private string? _cachedModel;
     /// <summary>
-    /// Инициализирует модель обнаружение и читает необязательный модель переопределение.
+    /// Инициализирует обнаружение модели и читает необязательное переопределение модели.
     /// </summary>
-    /// <param name="endpoint">LM Studio endpoint resolver.</param>
+    /// <param name="endpoint">Определитель endpoint LM Studio.</param>
     public LmStudioModelDiscovery(
         LmStudioEndpoint endpoint)
     {
@@ -36,9 +33,9 @@ public sealed class LmStudioModelDiscovery
     /// <summary>
     /// Выбирает embedding-модель с использованием явного переопределения, автоматического обнаружения или списка загруженных моделей.
     /// </summary>
-    /// <param name="cancellationToken">отмена токен для модель обнаружение запросы.</param>
-    /// <returns>выбранный embedding модель идентификатор.</returns>
-    /// <exception cref="InvalidOperationException">возникает когда не embedding модель может быть выбранный unambiguously.</exception>
+    /// <param name="cancellationToken">Токен отмены для запросов обнаружения модели.</param>
+    /// <returns>Идентификатор выбранной embedding-модели.</returns>
+    /// <exception cref="InvalidOperationException">Возникает, когда embedding-модель не может быть выбрана однозначно.</exception>
     public async Task<string> GetEmbeddingModelAsync(
         CancellationToken cancellationToken = default)
     {
@@ -124,11 +121,11 @@ public sealed class LmStudioModelDiscovery
             + "Задайте EMBEDD_MODEL вручную.");
     }
     /// <summary>
-    /// Читает собственный LM Studio модель каталог.
+    /// Читает собственный каталог моделей LM Studio.
     /// </summary>
-    /// <param name="nativeEndpoint">собственный LM Studio API endpoint.</param>
-    /// <param name="cancellationToken">отмена токен для запрос.</param>
-    /// <returns>модели возвращённый по LM Studio.</returns>
+    /// <param name="nativeEndpoint">Собственный API-endpoint LM Studio.</param>
+    /// <param name="cancellationToken">Токен отмены для запроса.</param>
+    /// <returns>Модели, возвращённые LM Studio.</returns>
     private async Task<List<LmStudioModelInfo>>
         GetModelsAsync(
             string nativeEndpoint,
@@ -223,10 +220,10 @@ public sealed class LmStudioModelDiscovery
     /// <summary>
     /// Находит embedding-модель, указанную как загруженную через совместимый с OpenAI endpoint моделей.
     /// </summary>
-    /// <param name="endpoint">совместимый с OpenAI LM Studio endpoint.</param>
-    /// <param name="embeddingModels">кандидат embedding модели.</param>
-    /// <param name="cancellationToken">отмена токен для запрос.</param>
-    /// <returns>загруженный embedding-модель, или <see langword="null"/> когда ни один может быть определён.</returns>
+    /// <param name="endpoint">Совместимый с OpenAI endpoint LM Studio.</param>
+    /// <param name="embeddingModels">Модели-кандидаты для эмбеддингов.</param>
+    /// <param name="cancellationToken">Токен отмены для запроса.</param>
+    /// <returns>Загруженная embedding-модель или <see langword="null"/>, если ни одну не удалось определить.</returns>
     private async Task<LmStudioModelInfo?>
         FindLoadedEmbeddingModelAsync(
             string endpoint,
@@ -298,9 +295,9 @@ public sealed class LmStudioModelDiscovery
     }
 
     /// <summary>
-    /// Добавляет настроенный LM Studio bearer токен для один HTTP запрос.
+    /// Добавляет настроенный bearer-токен LM Studio к одному HTTP-запросу.
     /// </summary>
-    /// <param name="request">запрос для авторизовать.</param>
+    /// <param name="request">Запрос, который нужно авторизовать.</param>
     private void AddAuthorization(
         HttpRequestMessage request)
     {
@@ -341,9 +338,9 @@ public sealed class LmStudioModelDiscovery
     /// <summary>
     /// Читает строковое свойство JSON, если оно существует и содержит строковое значение.
     /// </summary>
-    /// <param name="element">объект JSON для проверить.</param>
-    /// <param name="propertyName">свойство имя для чтения.</param>
-    /// <returns>свойство значение, или <see langword="null"/> когда it является отсутствующий или нестроковый.</returns>
+    /// <param name="element">Проверяемый объект JSON.</param>
+    /// <param name="propertyName">Имя читаемого свойства.</param>
+    /// <returns>Значение свойства или <see langword="null"/>, если оно отсутствует либо не является строкой.</returns>
     private static string? GetStringProperty(
         JsonElement element,
         string propertyName)
@@ -362,9 +359,9 @@ public sealed class LmStudioModelDiscovery
     }
 
     /// <summary>
-    /// Записывает выбранный embedding модель для stderr для диагностика.
+    /// Записывает выбранную embedding-модель в stderr для диагностики.
     /// </summary>
-    /// <param name="model">выбранный модель метаданные.</param>
+    /// <param name="model">Метаданные выбранной модели.</param>
     private static void LogSelectedModel(
         LmStudioModelInfo model)
     {
@@ -376,7 +373,7 @@ public sealed class LmStudioModelDiscovery
     }
 
     /// <summary>
-    /// Содержит модель идентификатор и классификация возвращённый по LM Studio.
+    /// Содержит идентификатор модели и её классификацию, возвращённые LM Studio.
     /// </summary>
     private sealed class LmStudioModelInfo
     {
@@ -387,13 +384,13 @@ public sealed class LmStudioModelDiscovery
             string.Empty;
 
         /// <summary>
-        /// Описывает назначение элемента.
+        /// Получает тип модели, возвращённый LM Studio (например, "embedding" или "llm").
         /// </summary>
         public string Type { get; init; } =
             string.Empty;
 
         /// <summary>
-        /// Получает удобочитаемый модель имя.
+        /// Получает удобочитаемое имя модели.
         /// </summary>
         public string DisplayName { get; init; } =
             string.Empty;

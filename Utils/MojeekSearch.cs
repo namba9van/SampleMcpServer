@@ -41,8 +41,8 @@ public static class MojeekSearch
         var doc = new HtmlDocument();
         doc.LoadHtml(page);
 
-        // Текущая структура Mojeek: ul.results-standard > li, URL результата находится в один.ob.
-        // Заголовок находится в h2 > один, а фрагмент — в p.s. Оставлены резервные селекторы на случай изменения HTML.
+        // Текущая структура Mojeek: ul.results-standard > li, URL результата находится в a.ob.
+        // Заголовок находится в h2 > a, а фрагмент — в p.s. Оставлены резервные селекторы на случай изменения HTML.
         var nodes = doc.DocumentNode.SelectNodes(
             "//ul[contains(concat(' ', normalize-space(@class), ' '), ' results-standard ')]/li" +
             "|//li[contains(concat(' ', normalize-space(@class), ' '), ' result ')]" +

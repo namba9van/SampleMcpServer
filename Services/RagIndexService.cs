@@ -5,9 +5,6 @@ namespace Services;
 /// <summary>
 /// Поддерживает постоянный индекс RAG и выполняет поиск по сходству среди его документов.
 /// </summary>
-/// <summary>
-/// Поддерживает постоянный индекс RAG и выполняет поиск по сходству среди его документов.
-/// </summary>
 public sealed class RagIndexService
 {
     private readonly EmbeddingService _embeddingService;
@@ -44,7 +41,11 @@ public sealed class RagIndexService
         _documentLoader = documentLoader;
     }
     /// <summary>
-    /// Синхронизирует постоянный индекс RAG с указанными файлами и перестраивает индекс FAISS в памяти.
+    /// Добавляет содержимое указанного файла или каталога в постоянный индекс RAG (создавая
+    /// или обновляя записи по изменившимся файлам) и перестраивает индекс FAISS в памяти.
+    /// Индекс общий для всего приложения: файлы, проиндексированные в предыдущих вызовах с
+    /// другим path, остаются в индексе, пока физически существуют на диске — из индекса
+    /// удаляются только действительно удалённые файлы.
     /// </summary>
     /// <param name="path">файл или каталог для которого содержимое должен быть represented в RAG индекс.</param>
     /// <param name="cancellationToken">отмена токен для индексации.</param>
@@ -224,10 +225,17 @@ public sealed class RagIndexService
                     requestedFiles,
                     StringComparer.OrdinalIgnoreCase);
 
+            // Файл считается удалённым из индекса, только если он реально пропал с диска —
+            // а не просто потому, что не входит в path текущего вызова. Индекс общий и
+            // персистентный (один на всё приложение, см. GetIndexRoot), и его цель — расти
+            // по мере того как индексируются разные файлы/каталоги в разных вызовах;
+            // раньше файл, ранее проиндексированный по одному path, тихо выпадал из индекса
+            // при следующем вызове с ДРУГИМ path, даже если сам файл никуда не делся.
             var deletedFiles =
                 existingMetadata.Files.Keys
                     .Where(file =>
-                        !requestedFileSet.Contains(file))
+                        !requestedFileSet.Contains(file) &&
+                        !File.Exists(file))
                     .ToList();
 
             Console.Error.WriteLine(
@@ -430,14 +438,14 @@ public sealed class RagIndexService
         }
     }
     /// <summary>
-    /// Выполняет поиск текущий в памяти RAG индекс и filters результаты по порог сходства.
+    /// Выполняет поиск по текущему индексу RAG в памяти и фильтрует результаты по порогу сходства.
     /// </summary>
     /// <param name="query">Поисковый запрос на естественном языке.</param>
-    /// <param name="limit">максимальный число из запрошенные кандидаты из FAISS.</param>
-    /// <param name="threshold">минимальный результат score для keep.</param>
-    /// <param name="cancellationToken">отмена токен для поиск.</param>
-    /// <returns>соответствующий vector-search результаты отсортированные из наибольшего для наименьшего score.</returns>
-    /// <exception cref="InvalidOperationException">возникает когда индекс имеет не был инициализирован.</exception>
+    /// <param name="limit">Максимальное число кандидатов, запрашиваемых из FAISS.</param>
+    /// <param name="threshold">Минимальный балл результата для сохранения.</param>
+    /// <param name="cancellationToken">Токен отмены для поиска.</param>
+    /// <returns>Подходящие результаты векторного поиска, отсортированные от наибольшего балла к наименьшему.</returns>
+    /// <exception cref="InvalidOperationException">Возникает, когда индекс ещё не был инициализирован.</exception>
     public async Task<
         List<
             Microsoft.Extensions.VectorData
@@ -472,11 +480,11 @@ public sealed class RagIndexService
     }
 
     /// <summary>
-    /// Загружает постоянный RAG метаданные из disk.
+    /// Загружает сохранённые метаданные индекса RAG с диска.
     /// </summary>
-    /// <param name="path">метаданные файл путь.</param>
-    /// <param name="cancellationToken">отмена токен для десериализация.</param>
-    /// <returns>метаданные, или <see langword="null"/> когда it является отсутствующий или некорректный.</returns>
+    /// <param name="path">Путь к файлу метаданных.</param>
+    /// <param name="cancellationToken">Токен отмены для десериализации.</param>
+    /// <returns>Метаданные или <see langword="null"/>, если файл отсутствует либо повреждён.</returns>
     private async Task<RagIndexMetadata?>
         LoadMetadataAsync(
             string path,
@@ -510,11 +518,11 @@ public sealed class RagIndexService
     }
 
     /// <summary>
-    /// Загружает сохранённый RAG документы и their embeddings из disk.
+    /// Загружает сохранённые RAG-документы и их эмбеддинги с диска.
     /// </summary>
-    /// <param name="path">документы файл путь.</param>
-    /// <param name="cancellationToken">отмена токен для десериализация.</param>
-    /// <returns>reсохранённый документы, или один пустой список когда файл является отсутствующий или некорректный.</returns>
+    /// <param name="path">Путь к файлу документов.</param>
+    /// <param name="cancellationToken">Токен отмены для десериализации.</param>
+    /// <returns>Сохранённые документы или пустой список, если файл отсутствует либо повреждён.</returns>
     private async Task<List<RagDocument>>
         LoadDocumentsAsync(
             string path,
@@ -657,9 +665,9 @@ public sealed class RagIndexService
     }
 
     /// <summary>
-    /// Возвращает per-user каталог используемый для store постоянный RAG индекс.
+    /// Возвращает каталог текущего пользователя, используемый для хранения постоянного индекса RAG.
     /// </summary>
-    /// <returns>absolute путь из RAG индекс каталог.</returns>
+    /// <returns>Абсолютный путь к каталогу индекса RAG.</returns>
     private static string GetIndexRoot()
     {
         var localAppData =

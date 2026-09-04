@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using static WebPageLoader;
 /// <summary>
-/// Предоставляет доступ для Baidu веб поиск результаты.
+/// Предоставляет доступ к результатам веб-поиска Baidu.
 /// </summary>
 public class BaiduSearch
 {
@@ -9,7 +9,7 @@ public class BaiduSearch
     /// Выполняет запрос к Baidu и преобразует непустые сводки в общий формат результатов поиска.
     /// </summary>
     /// <param name="query">Поисковый запрос.</param>
-    /// <param name="top">максимальный число из результаты запрошенный из Baidu.</param>
+    /// <param name="top">Максимальное число результатов, запрашиваемых у Baidu.</param>
     /// <returns>Соответствующие результаты поиска.</returns>
     public static async Task<IEnumerable<WebPageLoader.SearchResultItem>> LoadAsync(string query, int top)
     {
@@ -46,17 +46,17 @@ public class BaiduSearch
     }
 
     /// <summary>
-    /// Представляет один Baidu поиск результат запись.
+    /// Представляет одну запись результата поиска Baidu.
     /// </summary>
     class Entry
     {
         /// <summary>
-        /// Получает или задаёт результат заголовок возвращённый по Baidu.
+        /// Получает или задаёт заголовок результата, возвращённый Baidu.
         /// </summary>
         public string? title { get; set; }
 
         /// <summary>
-        /// Получает или задаёт результат аннотация текст.
+        /// Получает или задаёт текст аннотации результата.
         /// </summary>
         public string? abs { get; set; }
 
@@ -66,23 +66,23 @@ public class BaiduSearch
         public string? url { get; set; }
 
         /// <summary>
-        /// Получает или задаёт закодированный результат URL.
+        /// Получает или задаёт закодированный URL результата.
         /// </summary>
         public string? urlEnc { get; set; }
 
         /// <summary>
-        /// Получает или задаёт результат временная метка.
+        /// Получает или задаёт временную метку результата.
         /// </summary>
         public string? time { get; set; }
     }
 
     /// <summary>
-    /// Представляет результат лента возвращённый по Baidu.
+    /// Представляет ленту результатов, возвращённую Baidu.
     /// </summary>
     class Feed
     {
         /// <summary>
-        /// Получает или задаёт результат записи.
+        /// Получает или задаёт записи результатов.
         /// </summary>
         public List<Entry>? entry { get; set; }
     }
@@ -93,7 +93,7 @@ public class BaiduSearch
     class Root
     {
         /// <summary>
-        /// Получает или задаёт Baidu результат лента.
+        /// Получает или задаёт ленту результатов Baidu.
         /// </summary>
         public Feed? feed { get; set; }
     }

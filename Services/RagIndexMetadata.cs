@@ -3,29 +3,29 @@ using System.Text.Json.Serialization;
 namespace Services;
 
 /// <summary>
-/// Хранит постоянный метаданные требуемый для проверить и перестроить RAG индекс.
+/// Хранит постоянные метаданные, необходимые для проверки и перестройки индекса RAG.
 /// </summary>
 public sealed class RagIndexMetadata
 {
     /// <summary>
-    /// Получает или задаёт сериализованный метаданные схема версия.
+    /// Получает или задаёт версию схемы сериализованных метаданных.
     /// </summary>
     public int Version { get; set; } = 2;
 
     /// <summary>
-    /// Получает или задаёт embedding модель идентификатор используемый для построения индекс.
+    /// Получает или задаёт идентификатор embedding-модели, использованной для построения индекса.
     /// </summary>
     public string EmbeddingModel { get; set; } =
         string.Empty;
 
     /// <summary>
-    /// Получает или задаёт endpoint embedding, связанный с индексом.
+    /// Получает или задаёт endpoint эмбеддингов, связанный с индексом.
     /// </summary>
     public string EmbeddingEndpoint { get; set; } =
         string.Empty;
 
     /// <summary>
-    /// Получает или задаёт ожидаемый embedding вектор размерность.
+    /// Получает или задаёт ожидаемую размерность вектора эмбеддинга.
     /// </summary>
     public int EmbeddingDimension { get; set; }
 
@@ -36,7 +36,7 @@ public sealed class RagIndexMetadata
         new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Получает общее количество число из сохранённый документ разделы.
+    /// Получает общее количество сохранённых разделов документов.
     /// </summary>
     [JsonIgnore]
     public int DocumentCount =>
@@ -44,12 +44,12 @@ public sealed class RagIndexMetadata
 }
 
 /// <summary>
-/// Хранит индексации метаданные для один исходный файл.
+/// Хранит метаданные индексации для одного исходного файла.
 /// </summary>
 public sealed class RagFileMetadata
 {
     /// <summary>
-    /// Получает или задаёт индексированный файл путь.
+    /// Получает или задаёт путь индексированного файла.
     /// </summary>
     public string FilePath { get; set; } =
         string.Empty;
@@ -61,31 +61,31 @@ public sealed class RagFileMetadata
         string.Empty;
 
     /// <summary>
-    /// Получает или задаёт сохранённый разделы относящиеся для файл.
+    /// Получает или задаёт сохранённые разделы, относящиеся к файлу.
     /// </summary>
     public List<RagSectionMetadata> Sections { get; set; } =
         new();
 }
 
 /// <summary>
-/// Хранит сохранённый содержимое и embedding для один RAG раздел.
+/// Хранит сохранённое содержимое и эмбеддинг для одного раздела RAG.
 /// </summary>
 public sealed class RagSectionMetadata
 {
     /// <summary>
-    /// Получает или задаёт сохранённый раздел идентификатор.
+    /// Получает или задаёт сохранённый идентификатор раздела.
     /// </summary>
     public string Id { get; set; } =
         string.Empty;
 
     /// <summary>
-    /// Получает или задаёт сохранённый раздел содержимое.
+    /// Получает или задаёт сохранённое содержимое раздела.
     /// </summary>
     public string Content { get; set; } =
         string.Empty;
 
     /// <summary>
-    /// Получает или задаёт сохранённый embedding-вектор.
+    /// Получает или задаёт сохранённый вектор эмбеддинга.
     /// </summary>
     public float[] Embedding { get; set; } =
         Array.Empty<float>();

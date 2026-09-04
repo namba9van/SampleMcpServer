@@ -1,16 +1,16 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 /// <summary>
-/// Описывает назначение элемента.
+/// Предоставляет базовые арифметические операции как MCP-инструменты.
 /// </summary>
 public class CalcTools
 {
     /// <summary>
-    /// Добавляет два numbers.
+    /// Складывает два числа.
     /// </summary>
-    /// <param name="a">первый addend.</param>
-    /// <param name="b">второй addend.</param>
-    /// <returns>sum из два operands.</returns>
+    /// <param name="a">Первое слагаемое.</param>
+    /// <param name="b">Второе слагаемое.</param>
+    /// <returns>Сумма двух чисел.</returns>
     [McpServerTool, Description("Складывает два числа и возвращает их сумму.")]
 
     public static double Add(
@@ -20,11 +20,11 @@ public class CalcTools
         return a + b;
     }
     /// <summary>
-    /// Subtracts второй число из первый.
+    /// Вычитает второе число из первого.
     /// </summary>
-    /// <param name="a">minuend.</param>
-    /// <param name="b">subtrahend.</param>
-    /// <returns>difference between два operands.</returns>
+    /// <param name="a">Уменьшаемое.</param>
+    /// <param name="b">Вычитаемое.</param>
+    /// <returns>Разность двух чисел.</returns>
     [McpServerTool, Description("Вычитает второе число из первого и возвращает разность.")]
 
     public static double Subtract(
@@ -34,11 +34,11 @@ public class CalcTools
         return a - b;
     }
     /// <summary>
-    /// Описывает назначение элемента.
+    /// Умножает два числа.
     /// </summary>
-    /// <param name="a">первый factor.</param>
-    /// <param name="b">второй factor.</param>
-    /// <returns>product из два operands.</returns>
+    /// <param name="a">Первый множитель.</param>
+    /// <param name="b">Второй множитель.</param>
+    /// <returns>Произведение двух чисел.</returns>
     [McpServerTool, Description("Умножает два числа и возвращает произведение.")]
 
     public static double Multiply(
@@ -48,12 +48,12 @@ public class CalcTools
         return a * b;
     }
     /// <summary>
-    /// Divides первый число по второй.
+    /// Делит первое число на второе.
     /// </summary>
-    /// <param name="a">dividend.</param>
-    /// <param name="b">делитель. It должен быть non-zero.</param>
-    /// <returns>quotient из два operands.</returns>
-    /// <exception cref="ArgumentException">возникает когда <paramref name="b"/> является ноль.</exception>
+    /// <param name="a">Делимое.</param>
+    /// <param name="b">Делитель. Должен быть отличен от нуля.</param>
+    /// <returns>Частное двух чисел.</returns>
+    /// <exception cref="ArgumentException">Возникает, когда <paramref name="b"/> равен нулю.</exception>
     [McpServerTool, Description("Делит первое число на второе. Делитель не должен быть равен нулю.")]
 
     public static double Divide(
@@ -61,16 +61,16 @@ public class CalcTools
         [Description("Делитель. Не должен быть равен нулю.")] double b)
     {
         if (b == 0)
-            throw new ArgumentException("Cannot divide by zero");
+            throw new ArgumentException("Нельзя делить на ноль.");
 
         return a / b;
     }
     /// <summary>
-    /// повышает один число для specified exponent.
+    /// Возводит число в указанную степень.
     /// </summary>
-    /// <param name="baseNumber">base значение.</param>
-    /// <param name="exponent">exponent.</param>
-    /// <returns>calculated power.</returns>
+    /// <param name="baseNumber">Основание.</param>
+    /// <param name="exponent">Показатель степени.</param>
+    /// <returns>Результат возведения в степень.</returns>
     [McpServerTool, Description("Возводит основание в указанную степень.")]
 
     public static double Power(
@@ -80,17 +80,17 @@ public class CalcTools
         return Math.Pow(baseNumber, exponent);
     }
     /// <summary>
-    /// Calculates неотрицательный squявляются корень из один число.
+    /// Вычисляет неотрицательный квадратный корень из числа.
     /// </summary>
-    /// <param name="number">число для которого squявляются корень является требуемый.</param>
-    /// <returns>squявляются корень из <paramref name="number"/>.</returns>
-    /// <exception cref="ArgumentException">возникает когда <paramref name="number"/> является отрицательный.</exception>
+    /// <param name="number">Число, для которого требуется вычислить квадратный корень.</param>
+    /// <returns>Квадратный корень из <paramref name="number"/>.</returns>
+    /// <exception cref="ArgumentException">Возникает, когда <paramref name="number"/> отрицательное.</exception>
     [McpServerTool, Description("Вычисляет квадратный корень неотрицательного числа.")]
 
     public static double SquareRoot([Description("Неотрицательное число, для которого требуется вычислить квадратный корень.")] double number)
     {
         if (number < 0)
-            throw new ArgumentException("Cannot calculate square root of negative number");
+            throw new ArgumentException("Нельзя вычислить квадратный корень из отрицательного числа.");
 
         return Math.Sqrt(number);
     }

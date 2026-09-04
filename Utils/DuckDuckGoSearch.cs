@@ -175,7 +175,8 @@ public static class DuckDuckGoSearch
         if (href.StartsWith("//"))
             href = "https:" + href;
 
-        // Техническое примечание к реализации.
+        // DuckDuckGo оборачивает внешние ссылки в редирект вида /l/?uddg=<url-encoded-адрес>;
+        // извлекаем из него настоящий целевой URL.
         if (href.Contains("duckduckgo.com/l/?", StringComparison.OrdinalIgnoreCase))
         {
             var match = Regex.Match(

@@ -6,16 +6,16 @@ using System.Linq.Expressions;
 using Microsoft.Extensions.AI;
 using System.Runtime.CompilerServices;
 /// <summary>
-/// Предоставляет один в памяти векторного хранилища реализация на основе по один FAISS индекс.
+/// Предоставляет реализацию векторного хранилища в памяти на основе одного FAISS-индекса.
 /// </summary>
 public class FaissVectorStore : VectorStore
 {
     private readonly IEmbeddingGenerator? _embeddingGenerator;
     private readonly ConcurrentDictionary<string, object> _collections;
     /// <summary>
-    /// Описывает назначение элемента.
+    /// Создаёт хранилище с указанным генератором эмбеддингов для строковых поисковых запросов.
     /// </summary>
-    /// <param name="embeddingGenerator">генератор используемый для преобразовать текст поиск values в vectors.</param>
+    /// <param name="embeddingGenerator">Генератор, используемый для преобразования текста поискового запроса в векторы.</param>
     public FaissVectorStore(IEmbeddingGenerator? embeddingGenerator)
     {
         _embeddingGenerator = embeddingGenerator;
@@ -73,11 +73,11 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
     private readonly List<TKey> _indexToKeyMap;
     private int _dimension;
     /// <summary>
-    /// Создаёт один коллекция с переданное имя и векторного хранилища определение.
+    /// Создаёт коллекцию с указанным именем и определением векторного хранилища.
     /// </summary>
-    /// <param name="name">logical коллекция имя.</param>
-    /// <param name="embeddingGenerator">необязательный генератор используемый для строковый поиск.</param>
-    /// <param name="definition">необязательный векторного хранилища коллекция определение.</param>
+    /// <param name="name">Логическое имя коллекции.</param>
+    /// <param name="embeddingGenerator">Необязательный генератор, используемый для строкового поиска.</param>
+    /// <param name="definition">Необязательное определение коллекции векторного хранилища.</param>
     public FaissVectorStoreCollection(string name, IEmbeddingGenerator? embeddingGenerator, VectorStoreCollectionDefinition? definition)
     {
         _name = name;
@@ -135,14 +135,14 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
         return null;
     }
     /// <summary>
-    /// Выполняет поиск FAISS индекс и yields с наибольшей оценкой записи.
+    /// Выполняет поиск по индексу FAISS и возвращает записи с наибольшей оценкой сходства.
     /// </summary>
-    /// <typeparam name="TInput">type из переданное поиск значение.</typeparam>
-    /// <param name="searchValue">вектор или один значение that может быть преобразованный для текст для embedding generation.</param>
-    /// <param name="top">максимальный число из neighbors для возврат.</param>
+    /// <typeparam name="TInput">Тип переданного значения поискового запроса.</typeparam>
+    /// <param name="searchValue">Вектор или значение, которое можно преобразовать в текст для генерации эмбеддинга.</param>
+    /// <param name="top">Максимальное количество соседей для возврата.</param>
     /// <param name="options">Необязательные параметры векторного поиска.</param>
-    /// <param name="cancellationToken">отмена токен для асинхронный перечисление.</param>
-    /// <returns>асинхронный последовательность из vector-search результаты отсортированные по FAISS score.</returns>
+    /// <param name="cancellationToken">Токен отмены для асинхронного перечисления.</param>
+    /// <returns>Асинхронная последовательность результатов векторного поиска, отсортированных по оценке FAISS.</returns>
     public override async IAsyncEnumerable<VectorSearchResult<TRecord>> SearchAsync<TInput>(TInput searchValue, int top, VectorSearchOptions<TRecord>? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         ReadOnlyMemory<float> searchVector;
@@ -221,10 +221,10 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
         return Task.CompletedTask;
     }
     /// <summary>
-    /// извлекает векторного хранилища ключ из один динамический словаря или один с атрибутом свойство.
+    /// Извлекает ключ векторного хранилища из динамического словаря либо из свойства с атрибутом.
     /// </summary>
-    /// <param name="record">запись для которого ключ является требуемый.</param>
-    /// <returns>ключ связанный с запись.</returns>
+    /// <param name="record">Запись, для которой требуется ключ.</param>
+    /// <returns>Ключ, связанный с записью.</returns>
     /// <exception cref="InvalidOperationException">Возникает, если совместимый ключ не найден.</exception>
     private TKey ExtractKeyFromRecord(TRecord record)
     {
@@ -253,9 +253,9 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
         throw new InvalidOperationException($"Could not extract key from record of type {typeof(TRecord)}");
     }
     /// <summary>
-    /// извлекает один embedding вектор из один динамический словаря или один с атрибутом свойство.
+    /// Извлекает вектор эмбеддинга из динамического словаря либо из свойства с атрибутом.
     /// </summary>
-    /// <param name="record">запись для которого вектор является требуемый.</param>
+    /// <param name="record">Запись, для которой требуется вектор.</param>
     /// <returns>Сохранённый вектор или <see langword="null"/>, если вектор отсутствует.</returns>
     private ReadOnlyMemory<float>? ExtractVectorFromRecord(TRecord record)
     {
@@ -303,9 +303,25 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
     /// <summary>
     /// Добавляет вектор записи в индекс FAISS и проверяет его размерность.
     /// </summary>
-    /// <param name="key">запись ключ используемый для соответствие FAISS идентификатор обратно для запись.</param>
-    /// <param name="vector">вектор для добавить для индекс.</param>
-    /// <exception cref="InvalidOperationException">возникает когда вектор размерность конфликтует с существующим индекс.</exception>
+    /// <param name="key">Ключ записи, используемый для сопоставления идентификатора FAISS обратно с записью.</param>
+    /// <param name="vector">Вектор, добавляемый в индекс.</param>
+    /// <exception cref="InvalidOperationException">Возникает, когда размерность вектора конфликтует с уже существующим индексом.</exception>
+    /// <remarks>
+    /// ВАЖНОЕ ОГРАНИЧЕНИЕ: настоящего обновления вектора "на месте" для уже существующего
+    /// ключа здесь нет. Базовый индекс FAISS создаётся с типом "IDMap,HNSW32" — а FAISS не
+    /// поддерживает remove_ids для HNSW-индексов, поэтому старый вектор физически убрать из
+    /// индекса нельзя без полной пересборки. При повторном upsert уже известного ключа новый
+    /// вектор добавляется под новым внутренним id, а старый id становится осиротевшим:
+    /// он остаётся в самом FAISS-индексе (занимает место и участвует в поиске соседей), но
+    /// больше не резолвится обратно в запись, поскольку _keyToIndexMap[key] уже указывает на
+    /// новый id — SearchAsync корректно пропускает такие осиротевшие совпадения, не возвращая
+    /// их вызывающему, но они всё равно отнимают "слот" из top-k результатов поиска.
+    /// В текущем использовании (RagIndexService) это не проявляется: коллекция полностью
+    /// пересоздаётся заново при каждой переиндексации, поэтому повторный upsert одного и
+    /// того же ключа в рамках одной коллекции не происходит. Но при прямом переиспользовании
+    /// этого класса с долгоживущей коллекцией и обновлением одних и тех же ключей юзер
+    /// получит постепенно "разбухающий" индекс и деградацию качества поиска.
+    /// </remarks>
     private void UpdateFaissIndex(TKey key, ReadOnlyMemory<float> vector)
     {
         if (_dimension == 0)
@@ -322,21 +338,12 @@ internal class FaissVectorStoreCollection<TKey, TRecord> : VectorStoreCollection
             _index = FaissNet.Index.Create(_dimension, "IDMap,HNSW32", FaissNet.MetricType.METRIC_INNER_PRODUCT);
         }
 
-        if (_keyToIndexMap.TryGetValue(key, out long existingIndex))
-        {
-            var newIndexId = (long)_indexToKeyMap.Count;
-            _keyToIndexMap[key] = newIndexId;
-            _indexToKeyMap.Add(key);
-            var vectorArray = vector.ToArray();
-            _index.AddWithIds(new float[][] { vectorArray }, new long[] { newIndexId });
-        }
-        else
-        {
-            var newIndexId = (long)_indexToKeyMap.Count;
-            _keyToIndexMap[key] = newIndexId;
-            _indexToKeyMap.Add(key);
-            var vectorArray = vector.ToArray();
-            _index.AddWithIds(new float[][] { vectorArray }, new long[] { newIndexId });
-        }
+        // См. <remarks> выше: ветки "ключ уже существует" и "новый ключ" сейчас идентичны —
+        // настоящей замены вектора по существующему id не производится ни в одном случае.
+        var newIndexId = (long)_indexToKeyMap.Count;
+        _keyToIndexMap[key] = newIndexId;
+        _indexToKeyMap.Add(key);
+        var vectorArray = vector.ToArray();
+        _index.AddWithIds(new float[][] { vectorArray }, new long[] { newIndexId });
     }
 }

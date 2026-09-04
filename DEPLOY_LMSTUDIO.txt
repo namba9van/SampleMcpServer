@@ -1,0 +1,15 @@
+DEPLOYMENT (lite: без agent_chat/agent_dialog/ChatSupervizer)
+
+После dotnet build -c Release готовый комплект находится в:
+  _Release\
+
+Внутри:
+  _Release\SampleMcpServer.exe
+
+Переносите папку _Release целиком в рабочую папку LM Studio:
+  C:\Users\user\.lmstudio\SampleMcpServer\
+
+MCP путь из mcp.json:
+  C:\Users\user\.lmstudio\SampleMcpServer\SampleMcpServer.exe
+
+Ничего из комплекта переносить по отдельности не требуется.

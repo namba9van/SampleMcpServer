@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Unicode;
 
 /// <summary>
 /// Встроенный диагностический клиент MCP. Запускает отдельный экземпляр сервера
@@ -97,54 +99,6 @@ internal static class McpSelfInspector
                     return HasResult(response) && !HasError(response);
                 });
             }
-        }
-
-        await Check("Инструмент agent_dialog зарегистрирован", () =>
-            Task.FromResult(
-                toolNames is not null &&
-                toolNames.Any(x => string.Equals(x, "agent_dialog", StringComparison.OrdinalIgnoreCase))));
-
-        if (string.Equals(
-                Environment.GetEnvironmentVariable("MCP_AGENT_SELF_TEST"),
-                "true",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            await Check("Потоковые MCP progress-уведомления agent_dialog", async () =>
-            {
-                var progressMessages = new List<string>();
-
-                using var response = await session.RequestWithProgressAsync(
-                    "tools/call",
-                    new
-                    {
-                        name = "agent_dialog",
-                        arguments = new
-                        {
-                            prompt = "Кратко назови один плюс и один минус модульной архитектуры.",
-                            agentA = Environment.GetEnvironmentVariable("AGENT_A_MODEL"),
-                            agentB = Environment.GetEnvironmentVariable("AGENT_B_MODEL"),
-                            turns = 2
-                        },
-                        _meta = new
-                        {
-                            progressToken = "sample-self-test"
-                        }
-                    },
-                    notification =>
-                    {
-                        if (notification.TryGetProperty("params", out var parameters) &&
-                            parameters.TryGetProperty("message", out var message) &&
-                            message.ValueKind == JsonValueKind.String)
-                        {
-                            progressMessages.Add(message.GetString() ?? string.Empty);
-                            Console.WriteLine($"[progress] {message.GetString()}");
-                        }
-                    });
-
-                return HasResult(response) &&
-                       !HasError(response) &&
-                       progressMessages.Count > 0;
-            });
         }
 
         await Check("Корректный JSON-RPC stdout", () => Task.FromResult(session.ProtocolError is null));
@@ -263,7 +217,7 @@ internal static class McpSelfInspector
     {
         Console.WriteLine(JsonSerializer.Serialize(
             document.RootElement,
-            new JsonSerializerOptions { WriteIndented = true }));
+            new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.Create(UnicodeRanges.All) }));
     }
 
     private sealed class McpProcessSession : IAsyncDisposable

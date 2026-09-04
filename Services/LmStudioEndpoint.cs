@@ -37,9 +37,9 @@ public sealed class LmStudioEndpoint
     /// <summary>
     /// Возвращает настроенный или автоматически обнаруженный endpoint LM Studio.
     /// </summary>
-    /// <param name="cancellationToken">отмена токен для endpoint обнаружение.</param>
-    /// <returns>нормализованный совместимый с OpenAI LM Studio endpoint.</returns>
-    /// <exception cref="InvalidOperationException">возникает когда не доступный endpoint может быть найден.</exception>
+    /// <param name="cancellationToken">Токен отмены для обнаружения endpoint.</param>
+    /// <returns>Нормализованный совместимый с OpenAI endpoint LM Studio.</returns>
+    /// <exception cref="InvalidOperationException">Возникает, когда не удаётся найти доступный endpoint.</exception>
     public async Task<string> GetAsync(
         CancellationToken cancellationToken = default)
     {
@@ -78,9 +78,9 @@ public sealed class LmStudioEndpoint
     /// <summary>
     /// Проверяет, отвечает ли указанный endpoint LM Studio на запрос списка моделей.
     /// </summary>
-    /// <param name="endpoint">endpoint для check.</param>
-    /// <param name="cancellationToken">отмена токен для запрос.</param>
-    /// <returns><see langword="true"/> когда endpoint отвечает успешно или требует аутентификация; otherwise, <see langword="false"/>.</returns>
+    /// <param name="endpoint">Проверяемый endpoint.</param>
+    /// <param name="cancellationToken">Токен отмены для запроса.</param>
+    /// <returns><see langword="true"/>, если endpoint отвечает успешно или требует аутентификации; иначе <see langword="false"/>.</returns>
     public async Task<bool> IsAvailableAsync(
         string endpoint,
         CancellationToken cancellationToken = default)
@@ -111,8 +111,8 @@ public sealed class LmStudioEndpoint
     /// <summary>
     /// Проверяет локальные IPv4-адреса и доступные порты в поиске endpoint LM Studio.
     /// </summary>
-    /// <param name="cancellationToken">отмена токен для обнаружение.</param>
-    /// <returns>первый доступный endpoint, или <see langword="null"/> когда ни один является найден.</returns>
+    /// <param name="cancellationToken">Токен отмены для обнаружения.</param>
+    /// <returns>Первый доступный endpoint или <see langword="null"/>, если ни один не найден.</returns>
     private async Task<string?> FindAsync(
         CancellationToken cancellationToken)
     {
@@ -165,12 +165,12 @@ public sealed class LmStudioEndpoint
     }
 
     /// <summary>
-    /// Проверяет все кандидат локальный addresses на один TCP port.
+    /// Проверяет все адреса-кандидаты на одном TCP-порту.
     /// </summary>
-    /// <param name="addresses">локальный IPv4 addresses для проверка.</param>
-    /// <param name="port">TCP port для проверка.</param>
-    /// <param name="cancellationToken">отмена токен для проверки.</param>
-    /// <returns>первый valid LM Studio endpoint, или <see langword="null"/>.</returns>
+    /// <param name="addresses">Локальные IPv4-адреса для проверки.</param>
+    /// <param name="port">Проверяемый TCP-порт.</param>
+    /// <param name="cancellationToken">Токен отмены для проверки.</param>
+    /// <returns>Первый валидный endpoint LM Studio или <see langword="null"/>.</returns>
     private async Task<string?>
         FindOnPortAsync(
             IReadOnlyCollection<IPAddress> addresses,
@@ -199,11 +199,11 @@ public sealed class LmStudioEndpoint
     }
 
     /// <summary>
-    /// Описывает назначение элемента.
+    /// Проверяет, принадлежит ли указанный endpoint серверу LM Studio.
     /// </summary>
-    /// <param name="endpoint">endpoint для проверить.</param>
-    /// <param name="cancellationToken">отмена токен для запрос.</param>
-    /// <returns><see langword="true"/> для один successful ответ или HTTP 401; otherwise, <see langword="false"/>.</returns>
+    /// <param name="endpoint">Проверяемый endpoint.</param>
+    /// <param name="cancellationToken">Токен отмены для запроса.</param>
+    /// <returns><see langword="true"/> при успешном ответе или HTTP 401; иначе <see langword="false"/>.</returns>
     private async Task<bool>
         IsLmStudioAsync(
             string endpoint,
@@ -248,9 +248,9 @@ public sealed class LmStudioEndpoint
     }
 
     /// <summary>
-    /// Добавляет настроенный bearer токен для один HTTP запрос когда доступный.
+    /// Добавляет настроенный bearer-токен к одному HTTP-запросу, если он доступен.
     /// </summary>
-    /// <param name="request">запрос that должен receive авторизация заголовок.</param>
+    /// <param name="request">Запрос, которому нужно добавить заголовок авторизации.</param>
     private void AddAuthorization(
         HttpRequestMessage request)
     {
@@ -265,9 +265,9 @@ public sealed class LmStudioEndpoint
     }
 
     /// <summary>
-    /// Возвращает IPv4 addresses относящиеся для currently активный сетевые интерфейсы.
+    /// Возвращает IPv4-адреса, относящиеся к текущим активным сетевым интерфейсам.
     /// </summary>
-    /// <returns>активный не loopback IPv4 addresses.</returns>
+    /// <returns>Активные не loopback-адреса IPv4.</returns>
     private static IEnumerable<IPAddress>
         GetLocalIPv4Addresses()
     {
@@ -292,8 +292,8 @@ public sealed class LmStudioEndpoint
     /// <summary>
     /// Удаляет завершающие косые черты из URI endpoint.
     /// </summary>
-    /// <param name="endpoint">endpoint для нормализовать.</param>
-    /// <returns>endpoint без завершающие косые черты.</returns>
+    /// <param name="endpoint">Endpoint для нормализации.</param>
+    /// <returns>Endpoint без завершающих косых черт.</returns>
     private static string Normalize(
         string endpoint)
     {

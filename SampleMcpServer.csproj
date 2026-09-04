@@ -28,12 +28,22 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
 </PropertyGroup>
 
+  <!-- Release builds are collected in a simple, predictable _Release folder. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <OutputPath>$(MSBuildProjectDirectory)\_Release\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <PublishDir>$(MSBuildProjectDirectory)\_Release\</PublishDir>
+  </PropertyGroup>
+
   <!-- Включает дополнительные файлы в пакет MCP-сервера. -->
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="/" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
     <PackageReference Include="FaissNet" Version="1.1.0" />
     <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="9.9.0-preview.1.25458.4" />
@@ -43,6 +53,7 @@
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.65.0" />
     <PackageReference Include="MimeTypesMap" Version="1.0.9" />
     <PackageReference Include="ModelContextProtocol" Version="0.3.0-preview.2" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 

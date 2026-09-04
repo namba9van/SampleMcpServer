@@ -19,7 +19,7 @@ public static class FirecrawlSearch
     /// Необязательный API-ключ Firecrawl. Если значение null или пустое, запрос отправляется без ключа
     /// (без заголовка авторизации) с использованием бесплатного уровня Firecrawl без регистрации.
     /// </param>
-    /// <returns>разобранный поиск результаты.</returns>
+    /// <returns>Разобранные результаты поиска.</returns>
     public static async Task<List<SearchResultItem>> LoadAsync(string query, string? apiKey = null, int top = 10)
     {
         var result = new List<SearchResultItem>();

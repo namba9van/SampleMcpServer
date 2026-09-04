@@ -125,16 +125,31 @@ public class FileUtils
         return null;
     }
     /// <summary>
-    /// Определяет ли один файл starts с один распознаваемая сигнатура текстовой кодировки.
+    /// Определяет, является ли файл текстовым: по распознаваемой сигнатуре кодировки (BOM)
+    /// либо, если BOM нет и сигнатура не совпадает ни с одним известным бинарным форматом,
+    /// эвристически — по отсутствию нулевых байт в начале файла. Без второй проверки метод
+    /// считал текстовым только файлы с явным BOM, а подавляющее большинство обычных
+    /// текстовых файлов (UTF-8 без BOM — стандарт для Linux/macOS и многих редакторов)
+    /// ошибочно классифицировались как нетекстовые.
     /// </summary>
-    /// <param name="fileName">путь из файл для проверить.</param>
-    /// <returns><see langword="true"/> когда файл заголовок является recognized as текст; otherwise, <see langword="false"/>.</returns>
+    /// <param name="fileName">Путь к проверяемому файлу.</param>
+    /// <returns><see langword="true"/>, если файл распознан как текст; иначе <see langword="false"/>.</returns>
     public static bool IsPlainText(string fileName)
     {
-        using (FileStream stream = File.Open(fileName, FileMode.Open))
-        using (var reader = new BinaryReader(stream))
-        {
-            return GetFileExtensionFromHeader(reader) == "txt";
-        }
+        using FileStream stream = File.Open(fileName, FileMode.Open, FileAccess.Read);
+        using var reader = new BinaryReader(stream);
+
+        var extension = GetFileExtensionFromHeader(reader);
+        if (extension == "txt")
+            return true;
+        if (extension is not null)
+            return false; // Распознана конкретная бинарная сигнатура (png, zip, pdf и т. д.).
+
+        // Нет BOM и нет распознанной бинарной сигнатуры — сюда попадает большинство обычных
+        // текстовых файлов. Наличие нулевых байт — надёжный признак бинарного содержимого.
+        stream.Seek(0, SeekOrigin.Begin);
+        var sampleSize = (int)Math.Min(stream.Length, 8000);
+        var sample = reader.ReadBytes(sampleSize);
+        return !sample.Contains((byte)0);
     }
 }

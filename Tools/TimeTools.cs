@@ -3,14 +3,14 @@ using System.Globalization;
 using ModelContextProtocol.Server;
 
 /// <summary>
-/// Предоставляет текущий локальный date и time information из системный clock as MCP инструменты.
+/// Предоставляет текущие данные о дате и времени из системных часов как MCP-инструменты.
 /// </summary>
 public class TimeTools
 {
     /// <summary>
-    /// Возвращает текущий локальный time, UTC time, локальный time-zодин offset, и ISO 8601 временная метка.
+    /// Возвращает текущее локальное время, время UTC, смещение часового пояса и временную метку ISO 8601.
     /// </summary>
-    /// <returns>formatted строковый containing текущий локальный time, UTC time, time-zодин offset, и ISO 8601 временная метка.</returns>
+    /// <returns>Отформатированная строка, содержащая текущее локальное время, время UTC, смещение часового пояса и временную метку ISO 8601.</returns>
     [McpServerTool, Description("Возвращает текущее локальное время и время UTC по системным часам, включая смещение часового пояса и временную метку ISO 8601. Используйте этот инструмент вместо предположений о текущем времени.")]
     public static string GetCurrentTime()
     {
@@ -20,16 +20,16 @@ public class TimeTools
 
         return string.Join(
             Environment.NewLine,
-            $"Local time: {local:yyyy-MM-dd HH:mm:ss}",
+            $"Локальное время: {local:yyyy-MM-dd HH:mm:ss}",
             $"UTC: {utc:yyyy-MM-dd HH:mm:ss}",
-            $"Timezone offset: {offset}",
+            $"Смещение часового пояса: {offset}",
             $"ISO 8601: {local.ToString("yyyy-MM-dd\'T\'HH:mm:ss.ffffffzzz", CultureInfo.InvariantCulture)}");
     }
 
     /// <summary>
-    /// Возвращает текущий локальный calendar date в ISO и day-month-year форматы.
+    /// Возвращает текущую локальную календарную дату в форматах ISO и день-месяц-год.
     /// </summary>
-    /// <returns>formatted строковый containing текущий date в ISO формат, один day-month-year формат, и day из week в текущий системный culture.</returns>
+    /// <returns>Отформатированная строка, содержащая текущую дату в формате ISO, формате день-месяц-год и день недели в текущей системной культуре.</returns>
     [McpServerTool, Description("Возвращает текущую локальную дату в формате ISO, формате день-месяц-год и с указанием дня недели.")]
     public static string GetCurrentDate()
     {
@@ -37,15 +37,15 @@ public class TimeTools
 
         return string.Join(
             Environment.NewLine,
-            $"Date: {local:yyyy-MM-dd}",
-            $"Formatted date: {local:dd.MM.yyyy}",
-            $"Day of week: {local.ToString("dddd", CultureInfo.CurrentCulture)}");
+            $"Дата: {local:yyyy-MM-dd}",
+            $"Отформатированная дата: {local:dd.MM.yyyy}",
+            $"День недели: {local.ToString("dddd", CultureInfo.CurrentCulture)}");
     }
 
     /// <summary>
-    /// Возвращает текущий локальный временная метка в ISO 8601 формат с локальный time-zодин offset.
+    /// Возвращает текущую локальную временную метку в формате ISO 8601 со смещением часового пояса.
     /// </summary>
-    /// <returns>текущий локальный временная метка в ISO 8601 формат.</returns>
+    /// <returns>Текущая локальная временная метка в формате ISO 8601.</returns>
     [McpServerTool, Description("Возвращает текущую временную метку локальной машины в формате ISO 8601, включая смещение часового пояса. Используйте, когда требуется точная текущая временная метка.")]
     public static string GetCurrentTimestamp()
     {

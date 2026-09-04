@@ -7,7 +7,7 @@ using Microsoft.KernelMemory.Pipeline;
 
 namespace Services;
 /// <summary>
-/// Загружает поддерживаемые файл форматы и преобразует their содержимое в RAG документ фрагменты.
+/// Загружает поддерживаемые форматы файлов и преобразует их содержимое во фрагменты RAG-документов.
 /// </summary>
 public sealed class RagDocumentLoader
 {
@@ -46,11 +46,11 @@ public sealed class RagDocumentLoader
             ".config"
         };
     /// <summary>
-    /// Загружает все поддерживаемые файлы под один путь и преобразует them в RAG документ фрагменты.
+    /// Загружает все поддерживаемые файлы по указанному пути и преобразует их во фрагменты RAG-документов.
     /// </summary>
-    /// <param name="path">файл или каталог для загрузки.</param>
-    /// <param name="cancellationToken">отмена токен для файл обработка.</param>
-    /// <returns>загруженный документ фрагменты.</returns>
+    /// <param name="path">Файл или каталог для загрузки.</param>
+    /// <param name="cancellationToken">Токен отмены для обработки файлов.</param>
+    /// <returns>Загруженные фрагменты документов.</returns>
     public async Task<List<RagDocument>> LoadAsync(
         string path,
         CancellationToken cancellationToken = default)
@@ -84,11 +84,11 @@ public sealed class RagDocumentLoader
     }
 
     /// <summary>
-    /// Определяет один файл путь или рекурсивно перечисляет все файлы под один каталог.
+    /// Определяет один файл по пути или рекурсивно перечисляет все файлы в каталоге.
     /// </summary>
-    /// <param name="path">файл или каталог путь.</param>
-    /// <returns>файл paths для обрабатывать.</returns>
-    /// <exception cref="DirectoryNotFoundException">возникает когда <paramref name="path"/> не существует.</exception>
+    /// <param name="path">Путь к файлу или каталогу.</param>
+    /// <returns>Пути файлов для обработки.</returns>
+    /// <exception cref="DirectoryNotFoundException">Возникает, когда <paramref name="path"/> не существует.</exception>
     public IEnumerable<string> GetFiles(string path)
     {
         if (File.Exists(path))
@@ -115,13 +115,13 @@ public sealed class RagDocumentLoader
     /// <summary>
     /// Декодирует файл в соответствии с поддерживаемым форматом и создаёт фрагменты документа.
     /// </summary>
-    /// <param name="file">файл путь для загрузки.</param>
-    /// <param name="pdfDecoder">Kernel Memory PDF декодер.</param>
-    /// <param name="myWordExtractor">DOCX извлекатель.</param>
-    /// <param name="msExcelDecoder">XLSX декодер.</param>
-    /// <param name="msPowerPointDecoder">PPTX декодер.</param>
-    /// <param name="cancellationToken">отмена токен для декодирования.</param>
-    /// <returns>документ фрагменты извлечённый из файл.</returns>
+    /// <param name="file">Путь к загружаемому файлу.</param>
+    /// <param name="pdfDecoder">Декодер PDF из Kernel Memory.</param>
+    /// <param name="myWordExtractor">Извлекатель содержимого DOCX.</param>
+    /// <param name="msExcelDecoder">Декодер XLSX.</param>
+    /// <param name="msPowerPointDecoder">Декодер PPTX.</param>
+    /// <param name="cancellationToken">Токен отмены для декодирования.</param>
+    /// <returns>Фрагменты документа, извлечённые из файла.</returns>
     private async Task<List<RagDocument>> LoadFileAsync(
         string file,
         PdfDecoder pdfDecoder,
@@ -154,7 +154,7 @@ public sealed class RagDocumentLoader
                      StringComparison.OrdinalIgnoreCase))
         {
             var sections =
-                myWordExtractor.DecodeAsync(file);
+                myWordExtractor.Decode(file);
 
             foreach (var section in sections)
             {
@@ -239,11 +239,11 @@ public sealed class RagDocumentLoader
     }
 
     /// <summary>
-    /// Преобразует декодер разделы в непустой RAG документ фрагменты.
+    /// Преобразует непустые разделы, полученные от декодера, во фрагменты RAG-документа.
     /// </summary>
-    /// <param name="result">выходной коллекция.</param>
-    /// <param name="file">исходный файл путь.</param>
-    /// <param name="content">decoded файл содержимое.</param>
+    /// <param name="result">Выходная коллекция.</param>
+    /// <param name="file">Путь к исходному файлу.</param>
+    /// <param name="content">Декодированное содержимое файла.</param>
     private static void AddChunks(
         List<RagDocument> result,
         string file,
@@ -265,11 +265,11 @@ public sealed class RagDocumentLoader
     }
 
     /// <summary>
-    /// Создаёт один нормализованный RAG документ из один исходный файл и его содержимое.
+    /// Создаёт нормализованный RAG-документ из исходного файла и его содержимого.
     /// </summary>
-    /// <param name="file">исходный файл путь.</param>
-    /// <param name="content">документ содержимое.</param>
-    /// <returns>новый RAG документ с один сгенерированный идентификатор.</returns>
+    /// <param name="file">Путь к исходному файлу.</param>
+    /// <param name="content">Содержимое документа.</param>
+    /// <returns>Новый RAG-документ со сгенерированным идентификатором.</returns>
     private static RagDocument CreateDocument(
         string file,
         string content)

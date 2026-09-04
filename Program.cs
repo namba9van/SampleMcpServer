@@ -22,7 +22,6 @@ builder.Services.AddSingleton<LmStudioModelDiscovery>();
 builder.Services.AddSingleton<EmbeddingService>();
 builder.Services.AddSingleton<RagDocumentLoader>();
 builder.Services.AddSingleton<RagIndexService>();
-builder.Services.AddSingleton<AgentDialogService>();
 
 builder.Logging.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace);
 
@@ -35,7 +34,8 @@ builder.Services
     .WithTools<FileOperationsTools>()
     .WithTools<InternetSearchTools>()
     .WithTools<GitHubSearchTool>()
-    .WithTools<RAGTool>()
-    .WithTools<AgentDialogTools>();
+    .WithTools<RAGTool>();
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+
+await host.RunAsync();

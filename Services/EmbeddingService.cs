@@ -24,8 +24,8 @@ public sealed class EmbeddingService
     /// <summary>
     /// Инициализирует сервис embedding с endpoint LM Studio и зависимостями для обнаружения модели.
     /// </summary>
-    /// <param name="endpoint">сервис that определяет LM Studio endpoint.</param>
-    /// <param name="modelDiscovery">сервис that определяет embedding модель.</param>
+    /// <param name="endpoint">Сервис, определяющий endpoint LM Studio.</param>
+    /// <param name="modelDiscovery">Сервис, определяющий embedding-модель.</param>
     public EmbeddingService(
         LmStudioEndpoint endpoint,
         LmStudioModelDiscovery modelDiscovery)
@@ -169,13 +169,24 @@ public sealed class EmbeddingService
 
             if (string.IsNullOrWhiteSpace(key))
             {
-                throw new InvalidOperationException(
-                    "EMBEDD_KEY не задан. " +
-                    "LM Studio требует API token.");
-            }
+                // LM Studio на localhost по умолчанию НЕ проверяет api_key вообще — это
+                // подтверждённое поведение самого LM Studio (см. документацию по локальному
+                // серверу). Но клиентский OpenAI SDK (ApiKeyCredential) требует непустую
+                // строку для конструктора, поэтому вместо жёсткого отказа используем
+                // безобидную заглушку — так RAG работает из коробки с mcp.json.example,
+                // где EMBEDD_KEY по умолчанию пустой. Если у LM Studio включена
+                // аутентификация вручную, нужно задать реальный EMBEDD_KEY.
+                key = "lm-studio";
 
-            Console.Error.WriteLine(
-                "EmbeddingService: API key is configured.");
+                Console.Error.WriteLine(
+                    "EmbeddingService: EMBEDD_KEY не задан, используется заглушка " +
+                    "для локального сервера LM Studio без аутентификации.");
+            }
+            else
+            {
+                Console.Error.WriteLine(
+                    "EmbeddingService: API key is configured.");
+            }
 
             Console.Error.WriteLine(
                 "EmbeddingService: creating OpenAI client.");
