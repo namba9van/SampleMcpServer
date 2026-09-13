@@ -1,0 +1,29 @@
+# Build output
+bin/
+obj/
+artifacts/
+TestResults/
+
+# IDE
+.vs/
+.vscode/*.local.json
+.idea/
+*.user
+*.suo
+
+# Local configuration and secrets
+.env
+.env.local
+*.secrets.json
+
+# Runtime state
+*.db
+*.db-shm
+*.db-wal
+agent-workspace/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
