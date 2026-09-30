@@ -79,7 +79,7 @@ Capability может быть разрешён, запрещён или тре�
 
 ## Быстрый запуск
 
-Готовые сборки для Windows (x64), Linux (x64) и macOS (x64, Apple Silicon) лежат в [Releases](https://github.com/namba9van/SampleMcpServer/releases): распакуйте архив, установите .NET 8 Runtime и укажите путь к `SampleMcpServer.exe` / `SampleMcpServer` в `mcp.json`.
+Готовые сборки для Windows (x64), Linux (x64) и macOS (x64, Apple Silicon) лежат в [Releases](https://github.com/namba9van/SampleMcpServer/releases): сборки самодостаточные (.NET устанавливать не нужно): распакуйте архив и укажите путь к `SampleMcpServer.exe` / `SampleMcpServer` в `mcp.json`.
 
 Требуется .NET 8 SDK.
 
