@@ -73,7 +73,7 @@ def main() -> None:
     if missing: fail("missing required files: "+", ".join(missing))
 
     garbage={"bin","obj",".vs",".idea","TestResults","__pycache__"}
-    found=sorted({p.name for p in ROOT.rglob('*') if p.is_dir() and p.name in garbage})
+    found=sorted({p.name for p in ROOT.rglob('*') if p.is_dir() and p.name in garbage and '.git' not in p.parts})
     if found: fail("generated/IDE directories present: "+", ".join(found))
 
     cs_files=sorted(ROOT.rglob('*.cs'))
@@ -118,6 +118,7 @@ def main() -> None:
     # Basic secret scan. Example placeholders and empty values are fine.
     secret_patterns=[r'github_pat_[A-Za-z0-9_]{20,}', r'sk-[A-Za-z0-9]{20,}', r'Bearer\s+[A-Za-z0-9._-]{30,}']
     for p in ROOT.rglob('*'):
+        if '.git' in p.parts: continue
         if not p.is_file() or p.suffix in {'.zip','.png','.jpg','.jpeg','.pdf'}: continue
         text=p.read_text(encoding='utf-8',errors='ignore')
         for pat in secret_patterns:

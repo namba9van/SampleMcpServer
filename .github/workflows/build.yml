@@ -9,9 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Static validation runs on the clean checkout: it rejects bin/obj, which the build below creates.
+      - run: python3 scripts/validate_repo.py
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
       - run: dotnet restore
       - run: dotnet build --configuration Release --no-restore
-      - run: python3 scripts/validate_repo.py
