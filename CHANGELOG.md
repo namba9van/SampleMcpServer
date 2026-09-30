@@ -7,6 +7,7 @@
 - Telegram addressing: inbox messages carry `Addressing` (chat / reply_to_bot / mention / reply), reply-to metadata and thread id; `TELEGRAM_INBOX_FILTER=addressed` keeps only messages addressed to the bot; `telegram_send_message` accepts `replyToMessageId` and returns sent message ids.
 - Telegram polling is now guarded by a cross-process lock file next to the memory database, so several server processes started by the MCP host no longer fight over getUpdates (409 Conflict); 409 is retried with backoff instead of a stack trace.
 - Host hardening: an unhandled exception in a background service (e.g. the Telegram bridge) no longer stops the MCP server and its tools (`BackgroundServiceExceptionBehavior.Ignore`).
+- Release workflow: pushing a `v*` tag publishes framework-dependent builds for win-x64, linux-x64, osx-x64 and osx-arm64 and attaches them to the GitHub Release.
 - CI: the repository validator now runs before `dotnet build` (it rejects the `bin`/`obj` directories the build creates, which failed every previous run) and ignores `.git`.
 - Documented the `SHELL_*` environment block in `docs/CONFIGURATION.md`, `.env.example` and `docs/SECURITY.md`.
 

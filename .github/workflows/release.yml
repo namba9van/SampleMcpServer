@@ -1,0 +1,49 @@
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/validate_repo.py
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Publish (framework-dependent, .NET 8 runtime required on the target)
+        run: |
+          set -e
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          for RID in win-x64 linux-x64 osx-x64 osx-arm64; do
+            OUT="publish/$RID"
+            dotnet publish SampleMcpServer.csproj -c Release -r "$RID" --self-contained false -o "$OUT" --nologo -v q
+            cp README.md LICENSE CHANGELOG.md .env.example "$OUT/"
+            cp -r docs "$OUT/docs"
+            NAME="SampleMcpServer-$VERSION-$RID"
+            if [ "$RID" = "win-x64" ]; then
+              (cd "$OUT" && zip -qr "../../dist/$NAME.zip" .)
+            else
+              chmod +x "$OUT/SampleMcpServer"
+              tar -czf "dist/$NAME.tar.gz" -C "$OUT" .
+            fi
+          done
+          (cd dist && sha256sum * > "SampleMcpServer-$VERSION-SHA256SUMS.txt")
+          ls -l dist
+      - name: Release notes from CHANGELOG
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v v="## $VERSION" 'index($0,v)==1{p=1;next} /^## /{if(p)exit} p' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "SampleMcpServer $VERSION" > notes.md
+          printf '\n\nFramework-dependent builds: install the .NET 8 runtime, then run `SampleMcpServer.exe` (Windows) or `./SampleMcpServer` / `dotnet SampleMcpServer.dll` (Linux, macOS). See `docs/CONFIGURATION.md` for the environment variables and `README.md` for an `mcp.json` example.\n' >> notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: SampleMcpServer ${{ github.ref_name }}
+          body_path: notes.md
+          files: dist/*

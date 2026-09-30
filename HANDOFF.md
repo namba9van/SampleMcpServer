@@ -24,4 +24,6 @@ Before publishing:
    - `telegram_messages_wait` with `TELEGRAM_DELIVERY=inbox` when a bot token is available.
 5. Deploying next to a running copy on Windows: the MCP host keeps `SampleMcpServer.exe` and its DLLs locked. Either stop the host first, or rename the locked files to `*.old`, copy the new build over, restart the host and delete `*.old`.
 
+Releases: pushing a tag `vX.Y.Z` runs `.github/workflows/release.yml`, which publishes framework-dependent builds for win-x64, linux-x64, osx-x64 and osx-arm64, packs them (zip / tar.gz, plus SHA256SUMS) and attaches them to the GitHub Release with the matching `CHANGELOG.md` section as notes. The tag must point at a commit that contains this workflow.
+
 Current release tag: `v2.2.0`. See `CHANGELOG.md` for the release notes and `VALIDATION.md` for the checks that were actually executed.
