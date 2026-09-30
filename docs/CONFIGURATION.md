@@ -64,8 +64,22 @@
 - `TELEGRAM_POLL_TIMEOUT_SECONDS` — Telegram long-poll timeout.
 - `TELEGRAM_POLL_INTERVAL_MS` — backoff после ошибки polling.
 - `TELEGRAM_CONTEXT_TOKEN_BUDGET` — budget для memory_context, который прикладывается к Telegram-задаче.
+- `TELEGRAM_DELIVERY=queue|inbox|both` — куда попадает сообщение из разрешённого чата. `queue` (по умолчанию) — durable job для Agent Host; `inbox` — таблица `telegram_inbox` в `MEMORY_DB_PATH`, которую подключённый MCP-клиент читает инструментами `telegram_messages_wait` / `telegram_messages_poll` и подтверждает `telegram_messages_ack`, ack «Queued as agent job» при этом не отправляется; `both` — и то и другое.
+- Несколько процессов сервера с одним токеном (Claude Desktop запускает по экземпляру на окно/сессию): polling ведёт только процесс, удерживающий файл `<MEMORY_DB_PATH>.telegram-poll.lock`; остальные ждут и подхватывают, когда он завершится. Inbox и очередь общие через SQLite, инструменты работают из любого экземпляра. Ответ 409 от Telegram означает второго получателя вне этой блокировки (другая машина или другой `MEMORY_DB_PATH`).
+- `TELEGRAM_INBOX_FILTER=all|addressed` — `all` (по умолчанию) принимает любые сообщения разрешённого чата; `addressed` — только адресованные боту: ответ (reply) на сообщение бота или упоминание `@бот`; остальной разговор группы игнорируется (пишется в audit как `ignored`). Признак адресации приходит в поле `Addressing` каждого сообщения inbox: `chat`, `reply_to_bot`, `mention`, `reply` (ответ другому участнику).
 
 Сообщение из разрешённого Telegram-чата превращается в durable queue job для Agent Host. Завершённый job автоматически отправляет результат обратно в тот же chat ID через notification channel `telegram`.
+
+## Shell tools (operator)
+
+Операторские инструменты `shell_run`, `shell_run_to_file`, `shell_info`. Это не capability `shell` Agent Host: инструменты вызывает подключённая модель/оператор напрямую, governance Agent Host на них не распространяется.
+
+- `SHELL_ENABLED=true|false` — включает инструменты. По умолчанию `false`: `shell_run` и `shell_run_to_file` возвращают ошибку, `shell_info` сообщает `enabled=false`.
+- `SHELL_ALLOWED_ROOTS` — список абсолютных каталогов через `;`. Рабочая директория команды и файл вывода `shell_run_to_file` должны лежать внутри одного из них. Пусто — текущий каталог процесса.
+- `SHELL_DEFAULT_CWD` — рабочая директория по умолчанию (должна быть внутри allowed roots). Пусто — первый allowed root.
+- `SHELL_PROGRAM` — исполняемый файл оболочки: `powershell.exe`, `pwsh`, `cmd.exe`, `/bin/sh`, `/bin/bash`. По умолчанию `powershell.exe` на Windows и `/bin/sh` в остальных ОС.
+- `SHELL_TIMEOUT_SECONDS` — таймаут по умолчанию и верхняя граница `timeoutSeconds` (по умолчанию 120, жёсткий предел 3600). По истечении убивается всё дерево процессов.
+- `SHELL_MAX_OUTPUT_CHARS` — сколько символов stdout/stderr возвращается inline (по умолчанию 60000); остальное обрезается с пометкой.
 
 ## Legacy/general tools
 

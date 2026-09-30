@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.2.0 - operator shell tools
+
+- Added `ShellTools` (`shell_run`, `shell_run_to_file`, `shell_info`): operator-side command execution, off by default (`SHELL_ENABLED=false`), working directory and output files restricted to `SHELL_ALLOWED_ROOTS`, per-command timeout with process-tree kill and inline output truncation.
+- Added `TELEGRAM_DELIVERY=queue|inbox|both` and the Telegram inbox tools `telegram_messages_poll`, `telegram_messages_wait`, `telegram_messages_ack`, so an interactive MCP client can answer Telegram messages itself instead of the Agent Host.
+- Telegram addressing: inbox messages carry `Addressing` (chat / reply_to_bot / mention / reply), reply-to metadata and thread id; `TELEGRAM_INBOX_FILTER=addressed` keeps only messages addressed to the bot; `telegram_send_message` accepts `replyToMessageId` and returns sent message ids.
+- Telegram polling is now guarded by a cross-process lock file next to the memory database, so several server processes started by the MCP host no longer fight over getUpdates (409 Conflict); 409 is retried with backoff instead of a stack trace.
+- Host hardening: an unhandled exception in a background service (e.g. the Telegram bridge) no longer stops the MCP server and its tools (`BackgroundServiceExceptionBehavior.Ignore`).
+- Documented the `SHELL_*` environment block in `docs/CONFIGURATION.md`, `.env.example` and `docs/SECURITY.md`.
+
 ## 2.1.0 - Telegram bridge release
 
 - Added an optional Telegram bridge for remote agent requests from allow-listed chats/channels.

@@ -8,7 +8,7 @@
 
 ### MCP tools
 
-Сервер предоставляет 62 MCP-инструмента:
+Сервер предоставляет 68 MCP-инструментов:
 
 - калькулятор и текущее время;
 - чтение, создание и перечисление локальных файлов;
@@ -18,7 +18,8 @@
 - долговременная память модели;
 - события, watches, triggers и queue jobs;
 - autonomous runtime capabilities, approvals, schedules, notifications и audit;
-- Telegram status/send tools.
+- Telegram status/send tools и inbox (`telegram_messages_wait`) для ответов из подключённой сессии Claude;
+- операторские shell-инструменты `shell_run` / `shell_run_to_file` / `shell_info` (выключены по умолчанию, см. `SHELL_*`).
 
 Полный каталог инструментов находится в [docs/TOOLS.md](docs/TOOLS.md).
 
@@ -60,7 +61,7 @@ Agent Host запускается вместе с сервером как `Backg
 
 Опциональный Telegram bridge позволяет удалённо ставить задачи подключённым моделям из allow-listed Telegram-чата или канала. Бот читает сообщения через polling, создаёт durable queue job для Agent Host и отправляет результат обратно в тот же chat ID через notification channel `telegram`.
 
-Для включения задайте `TELEGRAM_BOT_ENABLED=true`, `TELEGRAM_BOT_TOKEN` и `TELEGRAM_ALLOWED_CHAT_IDS`. Для каналов Telegram бот должен быть добавлен в канал с нужными правами, а ID канала должен быть в allowlist.
+Для включения задайте `TELEGRAM_BOT_ENABLED=true`, `TELEGRAM_BOT_TOKEN` и `TELEGRAM_ALLOWED_CHAT_IDS`. Режим `TELEGRAM_DELIVERY=inbox` вместо очереди Agent Host складывает сообщения в inbox, который подключённая сессия Claude читает через `telegram_messages_wait` и отвечает через `telegram_send_message` — так на сообщения из чата отвечает сама сессия, а не локальная модель. Для каналов Telegram бот должен быть добавлен в канал с нужными правами, а ID канала должен быть в allowlist.
 
 ### Governance и безопасность
 

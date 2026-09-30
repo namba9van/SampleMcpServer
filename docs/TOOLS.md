@@ -1,6 +1,6 @@
 # MCP Tool Catalog
 
-This repository exposes **62 MCP tools**. Tool names are explicit and stable.
+This repository exposes **68 MCP tools**. Tool names are explicit and stable.
 
 ## CalcTools
 
@@ -76,10 +76,21 @@ This repository exposes **62 MCP tools**. Tool names are explicit and stable.
 - `agent_approval_resolve` — Approves or denies one pending autonomous action. This is an operator action; background agents must not self-approve.
 - `agent_audit` — Reads the technical audit trail for triggers, schedules, permissions, approvals, evidence and notifications.
 
+## ShellTools
+
+Operator shell tools. Disabled unless `SHELL_ENABLED=true`; every working directory and output file must lie under `SHELL_ALLOWED_ROOTS`. See `docs/CONFIGURATION.md` (Shell tools) and `docs/SECURITY.md`.
+
+- `shell_run` — Runs one shell command (PowerShell on Windows, /bin/sh elsewhere) in an allowed working directory with a timeout; returns exit code, elapsed time, stdout and stderr (truncated to `SHELL_MAX_OUTPUT_CHARS`).
+- `shell_run_to_file` — Runs a command and writes its full stdout/stderr to a UTF-8 file under an allowed root; returns a short JSON summary. Use for long output.
+- `shell_info` — Reports whether the shell is enabled, the shell program, allowed roots, default cwd, timeout and output limits without executing anything.
+
 ## TelegramTools
 
 - `telegram_bot_status` — Returns Telegram bot bridge configuration status without exposing the bot token.
-- `telegram_send_message` — Sends a Telegram message to an allow-listed chat using TELEGRAM_BOT_TOKEN.
+- `telegram_send_message` — Sends a Telegram message to an allow-listed chat using TELEGRAM_BOT_TOKEN; optional `replyToMessageId` makes it a Telegram reply, the result carries the sent message id(s).
+- `telegram_messages_poll` — Reads messages received from allow-listed chats into the bridge inbox (`TELEGRAM_DELIVERY=inbox|both`); returns immediately.
+- `telegram_messages_wait` — Long-polls the inbox (up to 300 s) so an interactive MCP client can react to new Telegram messages itself. Each message carries `Addressing` (`chat`, `reply_to_bot`, `mention`, `reply`), `ReplyToMessageId`/`ReplyToFrom`/`ReplyToText` and `ThreadId`.
+- `telegram_messages_ack` — Marks inbox messages up to an id as acked so they are not returned as new again.
 
 ## TimeTools
 

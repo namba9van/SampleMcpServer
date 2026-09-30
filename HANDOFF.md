@@ -14,12 +14,14 @@ Before publishing:
    dotnet build --configuration Release
    ```
 
-4. Optionally run the MCP Inspector against the stdio server and exercise at least:
+4. Optionally run the MCP Inspector (or a stdio JSON-RPC script) against the server and exercise at least:
    - `random_number`;
    - `rag_search` with a small text file;
    - `memory_remember` -> `memory_recall` -> `memory_get`;
    - `events_watch` and a matching memory update;
-   - scheduler/approval flow with external capabilities still disabled.
-5. Create the new Git repository and push the contents of this folder as its root.
+   - scheduler/approval flow with external capabilities still disabled;
+   - `shell_info` with `SHELL_ENABLED=false` (must report `enabled=false`) and `shell_run` inside `SHELL_ALLOWED_ROOTS` with it enabled;
+   - `telegram_messages_wait` with `TELEGRAM_DELIVERY=inbox` when a bot token is available.
+5. Deploying next to a running copy on Windows: the MCP host keeps `SampleMcpServer.exe` and its DLLs locked. Either stop the host first, or rename the locked files to `*.old`, copy the new build over, restart the host and delete `*.old`.
 
-Recommended first release tag: `v2.0.0` after the .NET build and smoke tests pass on the target machine.
+Current release tag: `v2.2.0`. See `CHANGELOG.md` for the release notes and `VALIDATION.md` for the checks that were actually executed.

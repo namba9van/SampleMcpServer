@@ -8,6 +8,10 @@ var builder = Host.CreateApplicationBuilder(args);
 // MCP uses stdout for protocol messages. Keep application logs on stderr.
 builder.Logging.AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Trace);
 
+// A failing background service (for example the Telegram bridge losing its token or hitting a 409 from Telegram)
+// must not take the whole MCP server, and with it every tool, down with it.
+builder.Services.Configure<HostOptions>(options => options.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
+
 builder.Services.AddSingleton<EmbeddingService>();
 builder.Services.AddSingleton<RagDocumentLoader>();
 builder.Services.AddSingleton<RagIndexService>();
@@ -35,6 +39,7 @@ builder.Services
     .WithTools<MemoryTools>()
     .WithTools<TriggerActionTools>()
     .WithTools<RuntimeTools>()
-    .WithTools<TelegramTools>();
+    .WithTools<TelegramTools>()
+    .WithTools<ShellTools>();
 
 await builder.Build().RunAsync();
