@@ -111,7 +111,8 @@ def main() -> None:
     env.update(re.findall(r'Read(?:Bool|Int|Double)\("([A-Za-z0-9_]+)"',code))
     env.update(re.findall(r'Read(?:IntEnv|DoubleEnvironment)\("([A-Za-z0-9_]+)"',code))
     documented=(ROOT/'.env.example').read_text(encoding='utf-8')
-    aliases={"GUTHUB_TOKEN","WEB_SEARCH_FirecrawApiKey","WEB_SEARCH_duckduckgoRegion"}
+    # Legacy typo aliases plus OS-provided variables the code reads but does not configure.
+    aliases={"GUTHUB_TOKEN","WEB_SEARCH_FirecrawApiKey","WEB_SEARCH_duckduckgoRegion","PATHEXT"}
     absent=sorted(v for v in env-aliases if v not in documented)
     if absent: fail("environment variables missing from .env.example: "+", ".join(absent))
 
